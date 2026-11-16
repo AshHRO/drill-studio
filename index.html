@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E7C86">
+<meta name="description" content="Volleyball-Übungen zeichnen, animieren und Trainings planen – offline.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Drill Studio">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Rostock Drill Studio</title>
+<style>
+/* Layout: top bar / [tool rail | court | inspector] / step strip. Court is the hero; chrome stays quiet. */
+:root{
+  --bg:#F2F5F7; --panel:#FFFFFF; --panel-2:#F6F9FA; --fg:#1E2A33; --muted:#5B6B78; --line:#D8E1EA;
+  --accent:#0E7C86; --accent-ink:#FFFFFF; --accent-soft:#E2F0F1; --warn:#B06A12; --warn-soft:#FBF3E7;
+  --danger:#B3261E; --danger-soft:#FBE9E7; --ok:#1B7F5A; --canvas:#E7ECF0; --shadow:0 6px 24px rgba(20,40,50,.12);
+  --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,"Helvetica Neue",Arial,sans-serif;
+  --font-display:"Space Grotesk",var(--font-ui);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1417; --panel:#151D22; --panel-2:#1B252B; --fg:#E6EDF1; --muted:#93A3AE; --line:#2A363E;
+  --accent:#36B9C4; --accent-ink:#06282B; --accent-soft:#12353A; --warn:#E0A458; --warn-soft:#2E2416;
+  --danger:#F28B82; --danger-soft:#3A1D1B; --ok:#5AC48F; --canvas:#0A0F12; --shadow:0 6px 24px rgba(0,0,0,.45);
+  color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0E1417; --panel:#151D22; --panel-2:#1B252B; --fg:#E6EDF1; --muted:#93A3AE; --line:#2A363E;
+  --accent:#36B9C4; --accent-ink:#06282B; --accent-soft:#12353A; --warn:#E0A458; --warn-soft:#2E2416;
+  --danger:#F28B82; --danger-soft:#3A1D1B; --ok:#5AC48F; --canvas:#0A0F12; --shadow:0 6px 24px rgba(0,0,0,.45);
+  color-scheme:dark }
+
+*{box-sizing:border-box} [hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 var(--font-ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:8px;padding-block:8px;max-width:1500px;margin:0 auto}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+.brand .dot{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:inset 0 0 0 3px var(--panel)}
+.title-in{flex:1 1 220px;min-width:0;border:1px solid transparent;background:transparent;border-radius:8px;padding:6px 8px;font-weight:600;font-size:15px}
+.title-in:hover,.title-in:focus{border-color:var(--line);background:var(--panel)}
+.top .grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 11px;display:inline-flex;align-items:center;gap:6px;line-height:1;white-space:nowrap}
+.btn:hover{background:var(--panel-2)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.danger{color:var(--danger);border-color:var(--danger-soft)}
+.btn.sm{padding:5px 8px;font-size:12.5px;border-radius:7px}
+.btn[disabled]{opacity:.45;cursor:default}
+.chip{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.chip.ex{background:var(--warn-soft);color:var(--warn)}
+.dirty{font-size:12px;color:var(--warn);font-weight:600}
+
+/* main */
+.main{display:grid;grid-template-columns:60px minmax(0,1fr) 300px;gap:10px;min-height:0}
+.rail{display:flex;flex-direction:column;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px;overflow:auto}
+.tool{border:1px solid transparent;background:transparent;border-radius:9px;width:46px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--muted);padding:0}
+.tool svg{width:22px;height:22px;display:block}
+.tool:hover{background:var(--panel-2);color:var(--fg)}
+.tool.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.tool .k{font-size:9px;opacity:.7}
+.rail hr{width:100%;border:0;border-top:1px solid var(--line);margin:3px 0}
+
+.stage{position:relative;background:var(--canvas);border:1px solid var(--line);border-radius:12px;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:6px 6px 34px}
+.stage svg.court{max-width:100%;max-height:100%;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+.stage .hint{position:absolute;left:10px;bottom:8px;font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 8px;pointer-events:none;opacity:.95}
+.stage .playbadge{position:absolute;right:10px;top:8px;font-size:12px;font-weight:700;color:var(--accent-ink);background:var(--accent);border-radius:999px;padding:4px 10px}
+
+.side{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;background:transparent;padding:10px 6px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.pane{padding:12px;overflow:auto;display:flex;flex-direction:column;gap:12px;min-height:0}
+.f{display:flex;flex-direction:column;gap:4px}
+.f label,.lbl{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+.in{border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:7px 9px;width:100%;min-width:0}
+textarea.in{min-height:64px;resize:vertical}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.row > .f{flex:1 1 90px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:6px 10px;color:var(--muted)}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.quick{display:flex;flex-wrap:wrap;gap:4px}
+.quick button{border:1px solid var(--line);background:var(--panel-2);border-radius:7px;padding:4px 7px;font-size:12px;font-weight:700}
+.swA,.swB{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:4px}
+.swA{background:#0E7C86}.swB{background:#E07B39}
+.empty{color:var(--muted);font-size:13px;line-height:1.5}
+.tog{display:flex;align-items:center;gap:8px;font-size:13px}
+.tog input{width:16px;height:16px;accent-color:var(--accent)}
+
+/* step strip */
+.steps{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;flex-wrap:wrap}
+.steps .list{display:flex;gap:6px;flex-wrap:wrap;flex:1 1 300px;min-width:0}
+.stepchip{border:1px solid var(--line);background:var(--panel-2);border-radius:9px;padding:6px 10px;display:inline-flex;gap:6px;align-items:center;font-weight:600}
+.stepchip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.stepchip .n{font-size:11px;opacity:.7;font-weight:700}
+.stepname{border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:6px 8px;width:150px}
+
+/* modals, toasts, confirm */
+.modal{position:fixed;inset:0;background:rgba(10,20,25,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.dlg{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);width:min(760px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.dlg header{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.dlg header h2{margin:0;font-family:var(--font-display);font-size:17px;flex:1}
+.dlg .body{padding:14px;overflow:auto;display:flex;flex-direction:column;gap:12px;min-height:0}
+.libitem{display:grid;grid-template-columns:1fr auto;gap:6px 10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--panel-2);cursor:pointer;align-items:center}
+.libitem:hover{border-color:var(--accent)}
+.libitem .t{font-weight:700}
+.libitem .m{font-size:12px;color:var(--muted)}
+.libitem .acts{display:flex;gap:4px}
+.preview{display:flex;flex-direction:column;align-items:center;gap:10px}
+.preview img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff;max-height:60vh}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 14px;border-radius:999px;font-weight:600;box-shadow:var(--shadow);z-index:60;max-width:90vw}
+.confirm{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:12px;padding:10px 12px;display:flex;gap:8px;align-items:center;z-index:60;max-width:92vw;flex-wrap:wrap}
+.kbd{font-size:11px;color:var(--muted)}
+.kbd b{font-weight:700;border:1px solid var(--line);border-radius:4px;padding:0 4px;background:var(--panel-2)}
+
+/* planner */
+.app.plan .main,.app.plan .steps,.app.plan .studio-only{display:none}
+.planner{display:grid;grid-template-columns:300px minmax(0,1fr);gap:10px;min-height:0}
+.pform{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:12px;overflow:auto;min-height:0}
+.pout{display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:0;min-width:0}
+.quick button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pstats{display:flex;gap:8px;flex-wrap:wrap}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--muted);flex:1 1 110px}
+.stat b{display:block;font-family:var(--font-display);font-size:19px;color:var(--fg);font-variant-numeric:tabular-nums}
+.blk{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px}
+.blk .mini svg{width:100%;height:auto;display:block;border-radius:8px;background:var(--canvas)}
+.blk .bi{display:flex;flex-direction:column;gap:6px;min-width:0}
+.blk h3{margin:0;font-family:var(--font-display);font-size:16px;text-wrap:balance}
+.blk p{margin:0;font-size:13px;line-height:1.45}
+.blk .time{font-size:12px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.roles{display:flex;flex-wrap:wrap;gap:4px}
+.rc{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 8px;background:var(--panel-2)}
+.rc b{margin-right:4px;color:var(--accent)}
+.bar{display:flex;height:8px;border-radius:999px;overflow:hidden;background:var(--line)}
+.bar i{display:block;height:100%}
+.bar .b1{background:var(--accent)} .bar .b2{background:var(--muted)} .bar .b3{background:var(--warn)}
+
+@media (max-width:900px){
+  .planner{grid-template-columns:1fr}
+  .pform,.pout{overflow:visible}
+  .blk{grid-template-columns:104px minmax(0,1fr)}
+  html,body{height:auto}
+  .app{height:auto;grid-template-rows:auto auto auto auto}
+  .main{grid-template-columns:1fr;grid-template-rows:auto auto auto}
+  .rail{flex-direction:row;flex-wrap:nowrap;overflow-x:auto}
+  .rail hr{width:1px;height:36px;border-top:0;border-left:1px solid var(--line);margin:0 2px;align-self:center}
+  .stage{height:68vh}
+  .side{max-height:none}
+  .pane{overflow:visible}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand"><span class="dot"></span><span>Rostock Drill Studio</span></div>
+    <input id="title" class="title-in" type="text" maxlength="80" placeholder="Übungstitel" aria-label="Titel">
+    <span id="dirty" class="dirty" hidden>●</span>
+    <div class="grp">
+      <button class="btn primary" id="bPlan">Planer</button>
+      <button class="btn" id="bUndo" title="Rückgängig (Ctrl+Z)">↶</button>
+      <button class="btn" id="bRedo" title="Wiederholen (Ctrl+Y)">↷</button>
+      <button class="btn" id="bLib" data-i18n="lib">Bibliothek</button>
+      <button class="btn" id="bNew" data-i18n="new">Neu</button>
+      <button class="btn primary" id="bSave" data-i18n="save">Speichern</button>
+      <button class="btn" id="bExport" data-i18n="export">Export</button>
+      <button class="btn" id="bHelp" title="Hilfe">?</button>
+      <button class="btn" id="bLang" title="Sprache / language">DE · EN</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <nav class="rail" id="rail" aria-label="Werkzeuge">
+      <button class="tool on" data-tool="select" title="Auswählen / bewegen (V)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 8-6 2-2 6z"/></svg><span data-i18n="t_select">Wählen</span></button>
+      <hr>
+      <button class="tool" data-tool="playerA" title="Spieler Team A (1)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#0E7C86"/></svg><span data-i18n="t_pa">Team A</span></button>
+      <button class="tool" data-tool="playerB" title="Spieler Team B (2)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#E07B39"/></svg><span data-i18n="t_pb">Team B</span></button>
+      <button class="tool" data-tool="ball" title="Ball (B)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="#F2C94C" stroke="#8A6D1B" stroke-width="1.5"/><path d="M6 12q6-4 12 0" fill="none" stroke="#8A6D1B"/></svg><span data-i18n="t_ball">Ball</span></button>
+      <button class="tool" data-tool="cone" title="Hütchen (C)"><svg viewBox="0 0 24 24"><path d="M12 4l6 15H6z" fill="#E07B39" stroke="#2B3A4A"/></svg><span data-i18n="t_cone">Hütchen</span></button>
+      <button class="tool" data-tool="coach" title="Trainer (T)"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" fill="#2B3A4A"/><text x="12" y="16.5" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">T</text></svg><span data-i18n="t_coach">Trainer</span></button>
+      <button class="tool" data-tool="box" title="Kasten (K)"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="10" rx="2" fill="#B9C6D3" stroke="#2B3A4A"/></svg><span data-i18n="t_box">Kasten</span></button>
+      <button class="tool" data-tool="target" title="Zielpunkt"><svg viewBox="0 0 24 24" fill="none" stroke="#1B7F5A" stroke-width="2"><circle cx="12" cy="12" r="8" stroke-dasharray="3 3"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.2" fill="#1B7F5A"/></svg><span data-i18n="t_target">Ziel</span></button>
+      <button class="tool" data-tool="zone" title="Zone (Z)"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2" fill="#1B7F5A" fill-opacity=".18" stroke="#1B7F5A" stroke-dasharray="4 3" stroke-width="1.8"/></svg><span data-i18n="t_zone">Zone</span></button>
+      <button class="tool" data-tool="text" title="Text (X)"><svg viewBox="0 0 24 24"><text x="12" y="17" text-anchor="middle" font-size="15" font-weight="800" fill="currentColor">Aa</text></svg><span data-i18n="t_text">Text</span></button>
+      <hr>
+      <button class="tool" data-tool="run" title="Laufweg (R)"><svg viewBox="0 0 24 24" fill="none" stroke="#3D5A80" stroke-width="2.2"><path d="M4 18L17 7" stroke-dasharray="4 3"/><path d="M12 6h6v6" /></svg><span data-i18n="t_run">Laufweg</span></button>
+      <button class="tool" data-tool="ballpath" title="Ballweg / Angriff (S)"><svg viewBox="0 0 24 24" fill="none" stroke="#C1121F" stroke-width="2.4"><path d="M4 18L17 7"/><path d="M12 6h6v6"/></svg><span data-i18n="t_bp">Ballweg</span></button>
+      <button class="tool" data-tool="pass" title="Zuspiel / Pass (P)"><svg viewBox="0 0 24 24" fill="none" stroke="#B8901C" stroke-width="2.4"><path d="M4 17q8-14 15-5" stroke-dasharray="2 3"/><path d="M15 6l4 6-6 1"/></svg><span data-i18n="t_pass">Zuspiel</span></button>
+    </nav>
+
+    <section class="stage" id="stage">
+      <svg class="court" id="svg" viewBox="0 0 350 640" xmlns="http://www.w3.org/2000/svg" aria-label="Spielfeld"></svg>
+      <div class="hint" id="hint"></div>
+      <div class="playbadge" id="playbadge" hidden>▶</div>
+    </section>
+
+    <aside class="side">
+      <div class="tabs">
+        <button id="tabEl" class="on" data-i18n="tab_el">Element</button>
+        <button id="tabDr" data-i18n="tab_dr">Übung</button>
+      </div>
+      <div class="pane" id="paneEl"></div>
+      <div class="pane" id="paneDr" hidden>
+        <div class="row">
+          <div class="f"><label for="cat" data-i18n="cat">Kategorie</label>
+            <select id="cat" class="in">
+              <option value="Aufschlag">Aufschlag</option><option value="Annahme">Annahme</option><option value="Angriff">Angriff</option>
+              <option value="Block">Block</option><option value="Abwehr">Abwehr</option><option value="Zuspiel">Zuspiel</option><option value="Spiel">Spiel</option><option value="Aufwärmen">Aufwärmen</option>
+            </select></div>
+          <div class="f"><label for="dur" data-i18n="dur">Dauer</label><input id="dur" class="in" placeholder="15 min"></div>
+          <div class="f"><label for="pl" data-i18n="players">Spieler</label><input id="pl" class="in" placeholder="8–18"></div>
+        </div>
+        <div class="f"><label for="nOrg" data-i18n="org">Organisation</label><textarea id="nOrg" class="in"></textarea></div>
+        <div class="f"><label for="nCoach" data-i18n="coach">Coaching-Punkte</label><textarea id="nCoach" class="in"></textarea></div>
+        <div class="f"><label for="nProg" data-i18n="prog">Progression</label><textarea id="nProg" class="in"></textarea></div>
+        <div class="f"><span class="lbl" data-i18n="court">Feld</span>
+          <div class="row">
+            <div class="seg" id="segOrient"><button data-v="v" class="on" data-i18n="vert">Hochkant</button><button data-v="h" data-i18n="horiz">Quer</button></div>
+            <div class="seg" id="segHalf"><button data-v="0" class="on" data-i18n="full">Ganz</button><button data-v="1" data-i18n="half">Halb</button></div>
+          </div>
+          <label class="tog"><input type="checkbox" id="tZones" checked><span data-i18n="zones">Zonen 1–6 anzeigen</span></label>
+          <label class="tog"><input type="checkbox" id="tSnap" checked><span data-i18n="snap">Am Raster einrasten</span></label>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="steps">
+    <div class="list" id="stepList"></div>
+    <input id="stepName" class="stepname" maxlength="40" placeholder="Schrittname">
+    <button class="btn sm" id="bStepAdd" title="Neuer Schritt (Kopie)">＋ <span data-i18n="step">Schritt</span></button>
+    <button class="btn sm" id="bStepL" title="nach links">◀</button>
+    <button class="btn sm" id="bStepR" title="nach rechts">▶</button>
+    <button class="btn sm danger" id="bStepDel" title="Schritt löschen">🗑</button>
+    <span style="flex:0 0 8px"></span>
+    <button class="btn sm primary" id="bPlay">▶ <span data-i18n="play">Abspielen</span></button>
+    <select id="speed" class="in" style="width:auto;padding:5px 6px"><option value="0.6">0.6×</option><option value="1" selected>1×</option><option value="1.6">1.6×</option></select>
+    <label class="tog"><input type="checkbox" id="loop"><span data-i18n="loop">Schleife</span></label>
+  </footer>
+
+  <section class="planner" id="planner" hidden>
+    <div class="pform">
+      <div class="f"><label for="plN" data-i18n="p_players">Spieler heute</label>
+        <div class="row"><input id="plN" class="in" type="number" min="8" max="18" value="16" style="width:76px"><input id="plNr" type="range" min="8" max="18" value="16" style="flex:1;min-width:0" aria-label="Spieler"></div></div>
+      <div class="row">
+        <div class="f"><label for="plTech" data-i18n="p_tech">Technik (min)</label><select id="plTech" class="in"><option>60</option><option>75</option><option selected>90</option><option>105</option><option>120</option></select></div>
+        <div class="f"><label for="plGame" data-i18n="p_game">Spiel (min)</label><select id="plGame" class="in"><option>0</option><option>15</option><option>20</option><option selected>30</option></select></div>
+      </div>
+      <div class="f"><span class="lbl" data-i18n="p_focus">Schwerpunkte (max. 3)</span><div class="quick" id="plFocus"></div></div>
+      <label class="tog"><input type="checkbox" id="plRun" checked><span data-i18n="p_run">Laufbetont</span></label>
+      <label class="tog"><input type="checkbox" id="plBox" checked><span data-i18n="p_box">Kasten vorhanden</span></label>
+      <div class="row"><button class="btn primary" id="plGo" data-i18n="p_go">Plan erstellen</button><button class="btn" id="plDice" data-i18n="p_dice">Neu würfeln</button></div>
+      <div class="row"><button class="btn sm" id="plCopy" data-i18n="p_copy">Plan kopieren</button><button class="btn sm" id="plHtml" data-i18n="p_html">Als druckbare Datei speichern</button><button class="btn sm" id="plToLib" data-i18n="p_tolib">Alle Übungen in die Bibliothek</button></div>
+      <p class="empty" data-i18n="p_note"></p>
+    </div>
+    <div class="pout" id="plOut"></div>
+  </section>
+</div>
+
+<div class="modal" id="mLib" hidden>
+  <div class="dlg">
+    <header><h2 data-i18n="lib">Bibliothek</h2><input id="libQ" class="in" style="width:200px" placeholder="Suchen…"><select id="libCat" class="in" style="width:auto"></select><button class="btn" data-close>✕</button></header>
+    <div class="body">
+      <div id="libList" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div class="f"><span class="lbl" data-i18n="transfer">Übertragen</span>
+        <div class="row">
+          <button class="btn sm" id="bCopyCode" data-i18n="copycode">Übungs-Code kopieren</button>
+          <button class="btn sm" id="bCopyLib" data-i18n="copylib">Backup aller Übungen kopieren</button>
+          <button class="btn sm" id="bDlLib" data-i18n="dllib">Backup als Datei</button>
+        </div>
+        <textarea id="codeIn" class="in" placeholder="Code hier einfügen … (VDS1: … oder VDSLIB1: …)"></textarea>
+        <div class="row"><button class="btn sm primary" id="bImport" data-i18n="import">Code importieren</button><span class="kbd" data-i18n="codehint">Code auf dem anderen Gerät einfügen – fertig.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mExport" hidden>
+  <div class="dlg">
+    <header><h2 data-i18n="export">Export</h2><button class="btn" data-close>✕</button></header>
+    <div class="body">
+      <div class="row">
+        <button class="btn" id="xPng" data-i18n="x_png">PNG – dieser Schritt</button>
+        <button class="btn" id="xPngAll" data-i18n="x_pngall">PNG – alle Schritte</button>
+        <button class="btn" id="xSvg">SVG</button>
+        <button class="btn" id="xJson" data-i18n="x_json">JSON (Datei)</button>
+        <button class="btn" id="xCode" data-i18n="copycode">Übungs-Code kopieren</button>
+      </div>
+      <div class="preview" id="xPrev" hidden>
+        <img id="xImg" alt="Export-Vorschau">
+        <div class="row"><button class="btn primary" id="xSave" data-i18n="savefile">Datei speichern</button><span class="kbd" id="xNote"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mHelp" hidden>
+  <div class="dlg">
+    <header><h2 data-i18n="help">Kurzanleitung</h2><button class="btn" data-close>✕</button></header>
+    <div class="body" id="helpBody"></div>
+  </div>
+</div>
+
+<div id="toastHost"></div>
+<div id="confirmHost"></div>
+<script>
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+/* ---------------- i18n ---------------- */
+const I18N = {
+  de: {
+    lib: 'Bibliothek', new: 'Neu', save: 'Speichern', export: 'Export', untitled: 'Neue Übung', step: 'Schritt',
+    tab_el: 'Element', tab_dr: 'Übung', cat: 'Kategorie', dur: 'Dauer', players: 'Spieler', org: 'Organisation',
+    coach: 'Coaching-Punkte', prog: 'Progression', court: 'Feld', vert: 'Hochkant', horiz: 'Quer', full: 'Ganz', half: 'Halb',
+    zones: 'Zonen 1–6 anzeigen', snap: 'Am Raster einrasten', play: 'Abspielen', stop: 'Stopp', loop: 'Schleife',
+    t_select: 'Wählen', t_pa: 'Team A', t_pb: 'Team B', t_ball: 'Ball', t_cone: 'Hütchen', t_coach: 'Trainer', t_box: 'Kasten',
+    t_target: 'Ziel', t_zone: 'Zone', t_text: 'Text', t_run: 'Laufweg', t_bp: 'Ballweg', t_pass: 'Zuspiel',
+    transfer: 'Übertragen', copycode: 'Übungs-Code kopieren', copylib: 'Backup aller Übungen kopieren', dllib: 'Backup als Datei',
+    import: 'Code importieren', codehint: 'Code auf dem anderen Gerät einfügen – fertig.', x_png: 'PNG – dieser Schritt',
+    x_pngall: 'PNG – alle Schritte', x_json: 'JSON (Datei)', savefile: 'Datei speichern', help: 'Kurzanleitung',
+    el_none: 'Nichts ausgewählt. Wähle links ein Werkzeug und tippe ins Feld, oder tippe ein Element an, um es zu bearbeiten.',
+    team: 'Team', label: 'Beschriftung', ring: 'Hervorheben (Zuspieler / Libero)', kind: 'Art', run: 'Laufweg', bp: 'Ballweg / Angriff',
+    pass: 'Zuspiel', straight: 'Gerade machen', flip: 'Richtung umkehren', width: 'Breite (m)', height: 'Tiefe (m)', size: 'Größe',
+    text: 'Text', dup: 'Duplizieren', del: 'Löschen', toall: 'In alle Schritte kopieren', saved: 'Gespeichert', copied: 'Kopiert',
+    copyfail: 'Kopieren nicht möglich – Text markieren und manuell kopieren.', imported: 'importiert', badcode: 'Code nicht erkannt.',
+    nolib: 'Noch keine Übungen gespeichert.', confirm_del: 'Übung wirklich löschen?', confirm_new: 'Ungespeicherte Änderungen verwerfen?',
+    yes: 'Ja', no: 'Abbrechen', load: 'Öffnen', steps: 'Schritte', example: 'Beispiel', allcats: 'Alle Kategorien',
+    hint_select: 'Element antippen zum Bearbeiten · ziehen zum Verschieben', hint_place: 'Ins Feld tippen, um zu platzieren',
+    hint_arrow: 'Im Feld ziehen: Start → Ziel', hint_zone: 'Im Feld ziehen, um die Zone aufzuziehen', hint_play: 'Wiedergabe läuft …',
+    dlok: 'Datei gespeichert', dlno: 'Speichern hier nicht möglich – Bild gedrückt halten bzw. Rechtsklick → „Bild speichern“.',
+    dlnofile: 'Speichern hier nicht möglich – nutze „Übungs-Code kopieren“.', dldecl: 'Nicht gespeichert.',
+    stepdel: 'Letzten Schritt kann man nicht löschen.', newdone: 'Neue Übung', renamed: 'Umbenannt', saved_as: 'Als Kopie gespeichert',
+    deleted: 'Gelöscht', nosel: 'Kein Element ausgewählt', help_html: `
+      <p><b>Zeichnen:</b> Werkzeug links wählen, dann ins Feld tippen. Spieler, Bälle, Hütchen bleiben als Werkzeug aktiv – mehrmals tippen. Pfeile und Zonen werden <i>gezogen</i> (Start → Ziel).</p>
+      <p><b>Bearbeiten:</b> Element antippen → rechts im Tab „Element“ Beschriftung, Team, Art ändern. Ziehen verschiebt. Bei Pfeilen den mittleren Griff ziehen = Kurve.</p>
+      <p><b>Schritte:</b> „＋ Schritt“ kopiert den aktuellen Schritt. Verschiebe dann die Spieler an ihre neue Position – <b>Abspielen</b> animiert die Bewegung zwischen den Schritten.</p>
+      <p><b>Speichern:</b> Übungen liegen in der Bibliothek dieses Geräts (Browser). Für ein anderes Gerät: Übungs-Code kopieren und dort importieren. Backup aller Übungen regelmäßig als Datei sichern.</p>
+      <p><b>Tastatur:</b> <span class="kbd"><b>V</b> wählen · <b>1</b>/<b>2</b> Spieler · <b>B</b> Ball · <b>R</b> Laufweg · <b>S</b> Ballweg · <b>P</b> Zuspiel · <b>Z</b> Zone · <b>X</b> Text · <b>Entf</b> löschen · <b>Ctrl+Z</b>/<b>Y</b> · <b>Ctrl+D</b> duplizieren · Pfeiltasten verschieben · <b>Esc</b></span></p>`
+  },
+  en: {
+    lib: 'Library', new: 'New', save: 'Save', export: 'Export', untitled: 'New drill', step: 'Step',
+    tab_el: 'Element', tab_dr: 'Drill', cat: 'Category', dur: 'Duration', players: 'Players', org: 'Organisation',
+    coach: 'Coaching points', prog: 'Progression', court: 'Court', vert: 'Portrait', horiz: 'Landscape', full: 'Full', half: 'Half',
+    zones: 'Show zones 1–6', snap: 'Snap to grid', play: 'Play', stop: 'Stop', loop: 'Loop',
+    t_select: 'Select', t_pa: 'Team A', t_pb: 'Team B', t_ball: 'Ball', t_cone: 'Cone', t_coach: 'Coach', t_box: 'Box',
+    t_target: 'Target', t_zone: 'Zone', t_text: 'Text', t_run: 'Run', t_bp: 'Ball path', t_pass: 'Set/Pass',
+    transfer: 'Transfer', copycode: 'Copy drill code', copylib: 'Copy backup of all drills', dllib: 'Backup as file',
+    import: 'Import code', codehint: 'Paste the code on the other device – done.', x_png: 'PNG – this step',
+    x_pngall: 'PNG – all steps', x_json: 'JSON (file)', savefile: 'Save file', help: 'Quick guide',
+    el_none: 'Nothing selected. Pick a tool on the left and tap the court, or tap an element to edit it.',
+    team: 'Team', label: 'Label', ring: 'Highlight (setter / libero)', kind: 'Kind', run: 'Run path', bp: 'Ball path / attack',
+    pass: 'Set / pass', straight: 'Make straight', flip: 'Reverse direction', width: 'Width (m)', height: 'Depth (m)', size: 'Size',
+    text: 'Text', dup: 'Duplicate', del: 'Delete', toall: 'Copy to all steps', saved: 'Saved', copied: 'Copied',
+    copyfail: 'Copy not possible – select the text and copy manually.', imported: 'imported', badcode: 'Code not recognised.',
+    nolib: 'No drills saved yet.', confirm_del: 'Delete this drill?', confirm_new: 'Discard unsaved changes?',
+    yes: 'Yes', no: 'Cancel', load: 'Open', steps: 'steps', example: 'Example', allcats: 'All categories',
+    hint_select: 'Tap an element to edit · drag to move', hint_place: 'Tap the court to place',
+    hint_arrow: 'Drag on the court: start → end', hint_zone: 'Drag on the court to draw the zone', hint_play: 'Playing …',
+    dlok: 'File saved', dlno: 'Saving is not available here – long-press / right-click the image → “Save image”.',
+    dlnofile: 'Saving is not available here – use “Copy drill code”.', dldecl: 'Not saved.',
+    stepdel: 'The last step cannot be deleted.', newdone: 'New drill', renamed: 'Renamed', saved_as: 'Saved as copy',
+    deleted: 'Deleted', nosel: 'No element selected', help_html: `
+      <p><b>Draw:</b> pick a tool on the left, then tap the court. Players, balls and cones stay active – tap again to place more. Arrows and zones are <i>dragged</i> (start → end).</p>
+      <p><b>Edit:</b> tap an element → change label, team or kind in the “Element” tab. Drag to move. On arrows, drag the middle handle to curve.</p>
+      <p><b>Steps:</b> “＋ Step” copies the current step. Move players to their new spots – <b>Play</b> animates the movement between steps.</p>
+      <p><b>Save:</b> drills live in this device's library (browser). For another device: copy the drill code and import it there. Back up all drills as a file now and then.</p>
+      <p><b>Keys:</b> <span class="kbd"><b>V</b> select · <b>1</b>/<b>2</b> players · <b>B</b> ball · <b>R</b> run · <b>S</b> ball path · <b>P</b> set · <b>Z</b> zone · <b>X</b> text · <b>Del</b> · <b>Ctrl+Z</b>/<b>Y</b> · <b>Ctrl+D</b> duplicate · arrow keys nudge · <b>Esc</b></span></p>`
+  }
+};
+let LANG = 'de';
+const t = k => (I18N[LANG] && I18N[LANG][k]) || I18N.de[k] || k;
+function applyI18n() {
+  $$('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $('#title').placeholder = t('untitled');
+  $('#stepName').placeholder = t('step');
+  $('#helpBody').innerHTML = t('help_html');
+  $('#bLang').textContent = LANG === 'de' ? 'DE · en' : 'de · EN';
+}
+
+/* ---------------- constants & state ---------------- */
+const COL = { a: '#0E7C86', b: '#E07B39', run: '#3D5A80', ball: '#C1121F', pass: '#B8901C', zone: '#1B7F5A', stroke: '#2B3A4A',
+  court: '#E8F0F7', att: '#DBE8F4', ring: '#8A3B12', box: '#B9C6D3', ballfill: '#F2C94C', ballstroke: '#8A6D1B', coach: '#2B3A4A', faint: '#B9C6D3' };
+const S = 30, MX = 40, MY = 50;
+const VB = { v: { full: [0, 0, 350, 640], half: [0, 250, 350, 390] }, h: { full: [0, 0, 640, 350], half: [0, 0, 400, 350] } };
+const ORDER = { zone: 0, box: 1, arrow: 2, cone: 3, target: 4, player: 5, ball: 6, coach: 7, text: 8 };
+const CATS = ['Aufschlag', 'Annahme', 'Angriff', 'Block', 'Abwehr', 'Zuspiel', 'Spiel', 'Aufwärmen'];
+
+const state = { drill: null, step: 0, tool: 'select', sel: null, snap: true, undo: [], redo: [], playing: false, dirty: false, lib: [] };
+const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { } }
+};
+function newDrill(title) {
+  return { id: uid(), title: title || '', category: 'Block', duration: '', players: '', notes: { org: '', coach: '', prog: '' },
+    orient: 'v', half: false, zones: true, steps: [{ name: t('step') + ' 1', els: [] }], createdAt: Date.now(), updatedAt: Date.now() };
+}
+const cur = () => state.drill.steps[state.step];
+const findEl = id => cur().els.find(e => e.id === id);
+
+/* ---------------- geometry ---------------- */
+function P(X, Y, d) { d = d || state.drill; return d.orient === 'v' ? [MX + S * X, MY + S * Y] : [MY + S * (18 - Y), MX + S * X]; }
+function unP(px, py) { return state.drill.orient === 'v' ? [(px - MX) / S, (py - MY) / S] : [(py - MX) / S, 18 - (px - MY) / S]; }
+function rectP(X1, Y1, X2, Y2, d) {
+  const a = P(X1, Y1, d), b = P(X2, Y2, d);
+  const x = Math.min(a[0], b[0]), y = Math.min(a[1], b[1]);
+  return [x, y, Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1])];
+}
+const f1 = n => Math.round(n * 10) / 10;
+const HALO = 'stroke="#fff" stroke-width="3.4" stroke-linejoin="round" paint-order="stroke"';
+
+/* ---------------- court ---------------- */
+function courtSVG(d) {
+  const p = [];
+  const [cx, cy, cw, ch] = rectP(0, 0, 9, 18, d);
+  p.push(`<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" fill="${COL.court}" stroke="${COL.stroke}" stroke-width="2"/>`);
+  const [ax, ay, aw, ah] = rectP(0, 6, 9, 12, d);
+  p.push(`<rect x="${ax}" y="${ay}" width="${aw}" height="${ah}" fill="${COL.att}"/>`);
+  for (const Y of [6, 12]) { const a = P(0, Y, d), b = P(9, Y, d); p.push(`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${COL.stroke}" stroke-width="1.2"/>`); }
+  if (d.zones) {
+    for (const X of [3, 6]) { const a = P(X, 0, d), b = P(X, 18, d); p.push(`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${COL.stroke}" stroke-opacity=".22" stroke-width="1" stroke-dasharray="4 4"/>`); }
+    const own = { 10.5: [4, 3, 2], 15: [5, 6, 1] }, opp = { 7.5: [2, 3, 4], 3: [1, 6, 5] };
+    for (const [grp, col] of [[own, COL.a], [opp, COL.b]]) for (const Y in grp) grp[Y].forEach((z, i) => {
+      const [x, y] = P(1.5 + 3 * i, +Y, d);
+      p.push(`<text x="${x}" y="${y + 15}" text-anchor="middle" font-size="44" font-weight="800" fill="${col}" opacity=".11">${z}</text>`);
+    });
+  }
+  const n1 = P(-0.53, 9, d), n2 = P(9.53, 9, d);
+  p.push(`<line x1="${n1[0]}" y1="${n1[1]}" x2="${n2[0]}" y2="${n2[1]}" stroke="${COL.stroke}" stroke-width="3.4"/>`);
+  for (let X = 0; X <= 9.001; X += 0.5) { const a = P(X, 8.87, d), b = P(X, 9.13, d); p.push(`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${COL.stroke}" stroke-width=".7"/>`); }
+  p.push(`<circle cx="${n1[0]}" cy="${n1[1]}" r="2.5" fill="${COL.stroke}"/><circle cx="${n2[0]}" cy="${n2[1]}" r="2.5" fill="${COL.stroke}"/>`);
+  return p.join('');
+}
+
+/* ---------------- elements ---------------- */
+function arrowGeom(e, d) {
+  const p1 = P(e.x, e.y, d), p2 = P(e.x2, e.y2, d), c = e.c ? P(e.c.x, e.c.y, d) : null;
+  const from = c || p1; let dx = p2[0] - from[0], dy = p2[1] - from[1]; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+  const hl = 9, tip = p2, base = [p2[0] - dx * hl, p2[1] - dy * hl];
+  const head = `M${tip[0]},${tip[1]} L${base[0] - dy * 4.5},${base[1] + dx * 4.5} L${base[0] + dy * 4.5},${base[1] - dx * 4.5} Z`;
+  const end = [p2[0] - dx * hl * .7, p2[1] - dy * hl * .7];
+  const path = c ? `M${p1[0]},${p1[1]} Q${c[0]},${c[1]} ${end[0]},${end[1]}` : `M${p1[0]},${p1[1]} L${end[0]},${end[1]}`;
+  const mid = c ? [.25 * p1[0] + .5 * c[0] + .25 * p2[0], .25 * p1[1] + .5 * c[1] + .25 * p2[1]] : [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+  return { p1, p2, c, path, head, mid };
+}
+function elSVG(e, d, inter) {
+  const id = inter ? ` data-id="${e.id}"` : '';
+  const g = inner => `<g${id}>${inner}</g>`;
+  if (e.t === 'player') {
+    const [x, y] = P(e.x, e.y, d), lab = e.label || '', fs = lab.length >= 3 ? 9.5 : lab.length === 2 ? 11 : 12;
+    return g(`<circle cx="${x}" cy="${y}" r="13" fill="${COL[e.team] || COL.a}" stroke="${e.ring ? COL.ring : '#fff'}" stroke-width="${e.ring ? 2.8 : 1.6}"/>` +
+      `<text x="${x}" y="${y + 4.2}" text-anchor="middle" font-size="${fs}" font-weight="800" fill="#fff">${esc(lab)}</text>`);
+  }
+  if (e.t === 'ball') { const [x, y] = P(e.x, e.y, d); return g(`<circle cx="${x}" cy="${y}" r="6.5" fill="${COL.ballfill}" stroke="${COL.ballstroke}" stroke-width="1.2"/><path d="M${x - 6},${y} Q${x},${y - 4} ${x + 6},${y}" fill="none" stroke="${COL.ballstroke}" stroke-width=".8"/>`); }
+  if (e.t === 'cone') { const [x, y] = P(e.x, e.y, d); return g(`<path d="M${x},${y - 7} L${x - 6},${y + 5} L${x + 6},${y + 5} Z" fill="${COL.b}" stroke="${COL.stroke}" stroke-width=".7"/>`); }
+  if (e.t === 'coach') { const [x, y] = P(e.x, e.y, d); return g(`<rect x="${x - 11}" y="${y - 11}" width="22" height="22" rx="5" fill="${COL.coach}" stroke="#fff" stroke-width="1.4"/><text x="${x}" y="${y + 4.2}" text-anchor="middle" font-size="11.5" font-weight="800" fill="#fff">${esc(e.label || 'T')}</text>`); }
+  if (e.t === 'box') { const [x, y, w, h] = rectP(e.x - .5, e.y - .3, e.x + .5, e.y + .3, d); return g(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="${COL.box}" stroke="${COL.stroke}" stroke-width="1.2"/><text x="${x + w / 2}" y="${y + h / 2 + 3.5}" text-anchor="middle" font-size="9" font-weight="700" fill="${COL.stroke}">K</text>`); }
+  if (e.t === 'target') { const [x, y] = P(e.x, e.y, d); return g(`<circle cx="${x}" cy="${y}" r="12" fill="none" stroke="${COL.zone}" stroke-width="2" stroke-dasharray="3 3"/><circle cx="${x}" cy="${y}" r="6" fill="none" stroke="${COL.zone}" stroke-width="2"/><circle cx="${x}" cy="${y}" r="2.4" fill="${COL.zone}"/>` + (e.label ? `<text x="${x}" y="${y - 16}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${COL.zone}" ${HALO}>${esc(e.label)}</text>` : '')); }
+  if (e.t === 'zone') { const [x, y, w, h] = rectP(e.x, e.y, e.x + e.w, e.y + e.h, d); return g(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${COL.zone}" fill-opacity=".12" stroke="${COL.zone}" stroke-width="1.8" stroke-dasharray="5 4"/>` + (e.label ? `<text x="${x + w / 2}" y="${y + h / 2 + 4}" text-anchor="middle" font-size="12" font-weight="800" fill="${COL.zone}" ${HALO}>${esc(e.label)}</text>` : '')); }
+  if (e.t === 'text') { const [x, y] = P(e.x, e.y, d); return g(`<text x="${x}" y="${y + (e.size || 11) * .35}" text-anchor="middle" font-size="${e.size || 11}" font-weight="700" fill="${COL.stroke}" ${HALO}>${esc(e.txt || '')}</text>`); }
+  if (e.t === 'arrow') {
+    const { path, head, mid } = arrowGeom(e, d);
+    const k = e.k || 'run', col = COL[k === 'ball' ? 'ball' : k === 'pass' ? 'pass' : 'run'];
+    const dash = k === 'run' ? ' stroke-dasharray="6 5"' : k === 'pass' ? ' stroke-dasharray="2 4" stroke-linecap="round"' : '';
+    return g(`<path d="${path}" fill="none" stroke="${col}" stroke-width="${k === 'ball' ? 2.6 : 2.4}"${dash}/><path d="${head}" fill="${col}"/>` +
+      (inter ? `<path d="${path}" fill="none" stroke="transparent" stroke-width="14"/>` : '') +
+      (e.label ? `<text x="${mid[0]}" y="${mid[1] - 7}" text-anchor="middle" font-size="10" font-weight="700" fill="${col}" ${HALO}>${esc(e.label)}</text>` : ''));
+  }
+  return '';
+}
+function selSVG(e, d) {
+  const H = (x, y, h, hollow) => `<circle cx="${x}" cy="${y}" r="7" fill="${hollow ? '#fff' : 'var(--accent,#0E7C86)'}" stroke="${hollow ? 'var(--accent,#0E7C86)' : '#fff'}" stroke-width="2" data-id="${e.id}" data-handle="${h}" style="cursor:grab"/>`;
+  if (e.t === 'arrow') { const { p1, p2, c, mid } = arrowGeom(e, d); const m = c || mid; return H(p1[0], p1[1], 'start') + H(p2[0], p2[1], 'end') + H(m[0], m[1], 'ctrl', true); }
+  if (e.t === 'zone') { const [x, y, w, h] = rectP(e.x, e.y, e.x + e.w, e.y + e.h, d); return `<rect x="${x - 3}" y="${y - 3}" width="${w + 6}" height="${h + 6}" fill="none" stroke="var(--accent,#0E7C86)" stroke-width="1.5" stroke-dasharray="4 3"/>` + H(x + w, y + h, 'resize'); }
+  const [x, y] = P(e.x, e.y, d); const r = e.t === 'text' ? Math.max(14, (e.txt || '').length * (e.size || 11) * .32) : e.t === 'box' ? 22 : 18;
+  return `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="var(--accent,#0E7C86)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+}
+function sceneBody(els, d, inter, selId) {
+  const sorted = els.slice().sort((a, b) => (ORDER[a.t] || 0) - (ORDER[b.t] || 0));
+  let s = courtSVG(d) + sorted.map(e => elSVG(e, d, inter)).join('');
+  if (inter && selId) { const e = els.find(x => x.id === selId); if (e) s += selSVG(e, d); }
+  return s;
+}
+function viewBoxOf(d) { return VB[d.orient][d.half ? 'half' : 'full']; }
+function exportSVG(els, d) {
+  const vb = viewBoxOf(d);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.join(' ')}" width="${vb[2]}" height="${vb[3]}" font-family="Helvetica, Arial, sans-serif"><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" fill="#fff"/>${sceneBody(els, d, false, null)}</svg>`;
+}
+/* ---------------- render ---------------- */
+const svg = $('#svg');
+let panelKey = null;
+function render() {
+  const d = state.drill;
+  svg.setAttribute('viewBox', viewBoxOf(d).join(' '));
+  svg.innerHTML = sceneBody(cur().els, d, true, state.sel);
+  renderSteps(); renderPanel(); updateHint();
+  $('#dirty').hidden = !state.dirty;
+  $('#bUndo').disabled = !state.undo.length; $('#bRedo').disabled = !state.redo.length;
+}
+function renderPlay(els) { svg.innerHTML = sceneBody(els, state.drill, false, null); }
+function quickDraw() { svg.innerHTML = sceneBody(cur().els, state.drill, true, state.sel); }
+
+/* ---------------- undo / mutations ---------------- */
+const snapOf = () => JSON.stringify({ drill: state.drill, step: state.step });
+function commit() { state.undo.push(snapOf()); if (state.undo.length > 60) state.undo.shift(); state.redo.length = 0; }
+function changed() { state.dirty = true; state.drill.updatedAt = Date.now(); scheduleDraft(); render(); }
+function restore(s) { const o = JSON.parse(s); state.drill = o.drill; state.step = Math.min(o.step, o.drill.steps.length - 1); state.sel = null; state.dirty = true; panelKey = null; scheduleDraft(); render(); }
+function undo() { if (!state.undo.length) return; state.redo.push(snapOf()); restore(state.undo.pop()); }
+function redo() { if (!state.redo.length) return; state.undo.push(snapOf()); restore(state.redo.pop()); }
+
+/* ---------------- tools & pointer ---------------- */
+function setTool(tl) { state.tool = tl; $$('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === tl)); updateHint(); }
+$('#rail').addEventListener('click', e => { const b = e.target.closest('.tool'); if (b) setTool(b.dataset.tool); });
+function updateHint() {
+  const h = $('#hint'); if (state.playing) { h.textContent = t('hint_play'); return; }
+  const tl = state.tool;
+  h.textContent = tl === 'select' ? t('hint_select') : /^(run|ballpath|pass)$/.test(tl) ? t('hint_arrow') : tl === 'zone' ? t('hint_zone') : t('hint_place');
+}
+const snap = v => state.snap ? Math.round(v * 4) / 4 : Math.round(v * 100) / 100;
+const clampX = v => Math.max(-1, Math.min(10, v)), clampY = v => Math.max(-1.5, Math.min(19.5, v));
+function ptr(evt) {
+  const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+  const m = svg.getScreenCTM(); if (!m) return [0, 0];
+  const q = pt.matrixTransform(m.inverse()); return unP(q.x, q.y);
+}
+function makeEl(tool, X, Y) {
+  const b = { id: uid(), x: X, y: Y };
+  return { playerA: { ...b, t: 'player', team: 'a', label: '' }, playerB: { ...b, t: 'player', team: 'b', label: '' }, ball: { ...b, t: 'ball' },
+    cone: { ...b, t: 'cone' }, coach: { ...b, t: 'coach', label: 'T' }, box: { ...b, t: 'box' }, target: { ...b, t: 'target', label: '' },
+    text: { ...b, t: 'text', txt: 'Text', size: 11 } }[tool];
+}
+function moveEl(e, dx, dy) {
+  if (e.t === 'arrow') { e.x = snap(e.x + dx); e.y = snap(e.y + dy); e.x2 = snap(e.x2 + dx); e.y2 = snap(e.y2 + dy); if (e.c) e.c = { x: snap(e.c.x + dx), y: snap(e.c.y + dy) }; }
+  else { e.x = clampX(snap(e.x + dx)); e.y = clampY(snap(e.y + dy)); }
+}
+let drag = null;
+svg.addEventListener('pointerdown', evt => {
+  if (state.playing) return; evt.preventDefault();
+  try { svg.setPointerCapture(evt.pointerId); } catch (e) { }
+  const [X, Y] = ptr(evt), tgt = evt.target.closest('[data-id]'), handle = evt.target.dataset.handle, tool = state.tool;
+  if (tool === 'select') {
+    if (tgt) {
+      const id = tgt.dataset.id, e = findEl(id); if (!e) return;
+      if (handle) { commit(); state.sel = id; drag = { kind: 'handle', id, handle }; quickDraw(); return; }
+      state.sel = id; drag = { kind: 'move', id, sx: X, sy: Y, orig: clone(e), moved: false }; render(); return;
+    }
+    if (state.sel) { state.sel = null; render(); } return;
+  }
+  if (/^(run|ballpath|pass)$/.test(tool)) { drag = { kind: 'arrow', x: snap(X), y: snap(Y), k: tool === 'run' ? 'run' : tool === 'ballpath' ? 'ball' : 'pass', temp: null }; return; }
+  if (tool === 'zone') { drag = { kind: 'zone', x: snap(X), y: snap(Y), temp: null }; return; }
+  const e = makeEl(tool, clampX(snap(X)), clampY(snap(Y))); if (!e) return;
+  commit(); cur().els.push(e); state.sel = e.id; changed();
+  if (/^(text|target|box|coach)$/.test(tool)) setTool('select');
+});
+svg.addEventListener('pointermove', evt => {
+  if (!drag) return; const [X, Y] = ptr(evt);
+  if (drag.kind === 'move') {
+    const e = findEl(drag.id); if (!e) return; const dx = X - drag.sx, dy = Y - drag.sy;
+    if (!drag.moved) { if (Math.hypot(dx, dy) < 0.08) return; commit(); drag.moved = true; }
+    const o = drag.orig;
+    if (e.t === 'arrow') { e.x = snap(o.x + dx); e.y = snap(o.y + dy); e.x2 = snap(o.x2 + dx); e.y2 = snap(o.y2 + dy); if (o.c) e.c = { x: snap(o.c.x + dx), y: snap(o.c.y + dy) }; }
+    else { e.x = clampX(snap(o.x + dx)); e.y = clampY(snap(o.y + dy)); }
+    quickDraw(); return;
+  }
+  if (drag.kind === 'handle') {
+    const e = findEl(drag.id); if (!e) return; const sx = snap(X), sy = snap(Y);
+    if (drag.handle === 'start') { e.x = sx; e.y = sy; } else if (drag.handle === 'end') { e.x2 = sx; e.y2 = sy; }
+    else if (drag.handle === 'ctrl') { e.c = { x: sx, y: sy }; } else if (drag.handle === 'resize') { e.w = Math.max(.5, sx - e.x); e.h = Math.max(.5, sy - e.y); }
+    quickDraw(); return;
+  }
+  if (drag.kind === 'arrow') { drag.temp = { id: '_tmp', t: 'arrow', k: drag.k, x: drag.x, y: drag.y, x2: snap(X), y2: snap(Y) }; svg.innerHTML = sceneBody(cur().els.concat([drag.temp]), state.drill, false, null); return; }
+  if (drag.kind === 'zone') { const sx = snap(X), sy = snap(Y); drag.temp = { id: '_tmp', t: 'zone', x: Math.min(drag.x, sx), y: Math.min(drag.y, sy), w: Math.abs(sx - drag.x), h: Math.abs(sy - drag.y) }; svg.innerHTML = sceneBody(cur().els.concat([drag.temp]), state.drill, false, null); }
+});
+function endDrag() {
+  if (!drag) return; const dr = drag; drag = null;
+  if (dr.kind === 'move') { if (dr.moved) changed(); else render(); return; }
+  if (dr.kind === 'handle') { changed(); return; }
+  if (dr.kind === 'arrow') {
+    if (dr.temp && Math.hypot(dr.temp.x2 - dr.temp.x, dr.temp.y2 - dr.temp.y) >= 0.4) { commit(); const e = { ...dr.temp, id: uid(), label: '' }; cur().els.push(e); state.sel = e.id; changed(); } else render(); return;
+  }
+  if (dr.kind === 'zone') {
+    commit(); const z = (dr.temp && dr.temp.w >= .5 && dr.temp.h >= .5) ? { ...dr.temp, id: uid(), label: '' } : { id: uid(), t: 'zone', x: dr.x - 1, y: dr.y - 1, w: 2, h: 2, label: '' };
+    cur().els.push(z); state.sel = z.id; setTool('select'); changed();
+  }
+}
+svg.addEventListener('pointerup', endDrag); svg.addEventListener('pointercancel', endDrag);
+
+/* ---------------- selection actions ---------------- */
+function delSel() { if (!state.sel) return; commit(); const s = cur(); s.els = s.els.filter(e => e.id !== state.sel); state.sel = null; changed(); }
+function dupSel() { const e = findEl(state.sel); if (!e) return; commit(); const n = clone(e); n.id = uid(); moveEl(n, .5, .5); cur().els.push(n); state.sel = n.id; changed(); }
+function toAllSteps() { const e = findEl(state.sel); if (!e) return; commit(); state.drill.steps.forEach((s, i) => { if (i !== state.step && !s.els.some(x => x.id === e.id)) s.els.push(clone(e)); }); changed(); toast(t('toall') + ' ✓'); }
+
+/* ---------------- keyboard ---------------- */
+document.addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase(); if (/^(input|textarea|select)$/.test(tag) || e.target.isContentEditable) return;
+  if ($$('.modal').some(m => !m.hidden)) { if (e.key === 'Escape') closeModals(); return; }
+  const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
+  if (state.playing) { if (k === 'escape') stopPlay(); return; }
+  if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (mod && k === 'y') { e.preventDefault(); redo(); return; }
+  if (mod && k === 'd') { e.preventDefault(); dupSel(); return; }
+  if (mod && k === 's') { e.preventDefault(); saveDrill(); return; }
+  if (k === 'delete' || k === 'backspace') { e.preventDefault(); delSel(); return; }
+  if (k === 'escape') { state.sel = null; setTool('select'); render(); return; }
+  const map = { v: 'select', 1: 'playerA', 2: 'playerB', b: 'ball', c: 'cone', t: 'coach', k: 'box', z: 'zone', x: 'text', r: 'run', s: 'ballpath', p: 'pass' };
+  if (!mod && map[k]) { setTool(map[k]); return; }
+  if (state.sel && e.key.startsWith('Arrow')) {
+    e.preventDefault(); const el = findEl(state.sel); if (!el) return; const st = e.shiftKey ? 1 : .25;
+    let dx = 0, dy = 0; if (e.key === 'ArrowLeft') dx = -st; if (e.key === 'ArrowRight') dx = st; if (e.key === 'ArrowUp') dy = -st; if (e.key === 'ArrowDown') dy = st;
+    if (state.drill.orient === 'h') { const tmp = dx; dx = dy; dy = -tmp; }
+    commit(); moveEl(el, dx, dy); changed();
+  }
+});
+
+/* ---------------- element panel ---------------- */
+const QUICK = ['1', '2', '3', '4', '5', '6', 'Z', 'L', 'M', 'Au', 'D', 'A', 'T', 'S'];
+function renderPanel() {
+  const e = state.sel ? findEl(state.sel) : null; const key = e ? e.id + ':' + e.t : 'none';
+  if (key === panelKey) return; panelKey = key;
+  const pane = $('#paneEl');
+  if (!e) { pane.innerHTML = `<p class="empty">${t('el_none')}</p>`; return; }
+  const common = `<div class="row"><button class="btn sm" data-act="dup">${t('dup')}</button><button class="btn sm" data-act="all">${t('toall')}</button><button class="btn sm danger" data-act="del">${t('del')}</button></div>`;
+  let h = '';
+  if (e.t === 'player') h = `<div class="f"><span class="lbl">${t('team')}</span><div class="seg" data-f="team"><button data-v="a" class="${e.team === 'a' ? 'on' : ''}"><span class="swA"></span>A</button><button data-v="b" class="${e.team === 'b' ? 'on' : ''}"><span class="swB"></span>B</button></div></div>
+    <div class="f"><label for="pLabel">${t('label')}</label><input id="pLabel" class="in" maxlength="3" data-f="label" value="${esc(e.label || '')}"></div>
+    <div class="quick" data-f="quick">${QUICK.map(q => `<button data-v="${q}">${q}</button>`).join('')}</div>
+    <label class="tog"><input type="checkbox" data-f="ring" ${e.ring ? 'checked' : ''}><span>${t('ring')}</span></label>`;
+  else if (e.t === 'arrow') h = `<div class="f"><span class="lbl">${t('kind')}</span><div class="seg" data-f="k"><button data-v="run" class="${e.k === 'run' ? 'on' : ''}">${t('run')}</button><button data-v="ball" class="${e.k === 'ball' ? 'on' : ''}">${t('bp')}</button><button data-v="pass" class="${e.k === 'pass' ? 'on' : ''}">${t('pass')}</button></div></div>
+    <div class="f"><label for="pLabel">${t('label')}</label><input id="pLabel" class="in" maxlength="24" data-f="label" value="${esc(e.label || '')}"></div>
+    <div class="row"><button class="btn sm" data-act="straight">${t('straight')}</button><button class="btn sm" data-act="flip">${t('flip')}</button></div>`;
+  else if (e.t === 'zone') h = `<div class="f"><label for="pLabel">${t('label')}</label><input id="pLabel" class="in" maxlength="24" data-f="label" value="${esc(e.label || '')}"></div>
+    <div class="row"><div class="f"><label for="pW">${t('width')}</label><input id="pW" class="in" type="number" step="0.5" min="0.5" data-f="w" value="${e.w}"></div><div class="f"><label for="pH">${t('height')}</label><input id="pH" class="in" type="number" step="0.5" min="0.5" data-f="h" value="${e.h}"></div></div>`;
+  else if (e.t === 'text') h = `<div class="f"><label for="pTxt">${t('text')}</label><input id="pTxt" class="in" maxlength="60" data-f="txt" value="${esc(e.txt || '')}"></div>
+    <div class="f"><label for="pSize">${t('size')}</label><input id="pSize" type="range" min="8" max="20" step="1" data-f="size" value="${e.size || 11}"></div>`;
+  else if (e.t === 'target' || e.t === 'coach') h = `<div class="f"><label for="pLabel">${t('label')}</label><input id="pLabel" class="in" maxlength="24" data-f="label" value="${esc(e.label || '')}"></div>`;
+  pane.innerHTML = `<div class="f"><span class="lbl">${t('tab_el')}: ${e.t}</span></div>${h}${common}`;
+}
+$('#paneEl').addEventListener('input', ev => {
+  const e = findEl(state.sel); if (!e) return; const f = ev.target.dataset.f; if (!f) return;
+  if (ev.target.type === 'checkbox') e[f] = ev.target.checked; else if (ev.target.type === 'number' || ev.target.type === 'range') e[f] = Math.max(.5, parseFloat(ev.target.value) || 0); else e[f] = ev.target.value;
+  state.dirty = true; state.drill.updatedAt = Date.now(); scheduleDraft(); quickDraw(); $('#dirty').hidden = false;
+});
+$('#paneEl').addEventListener('click', ev => {
+  const e = findEl(state.sel); if (!e) return; const b = ev.target.closest('button'); if (!b) return;
+  const act = b.dataset.act, seg = b.closest('[data-f]');
+  if (act === 'del') return delSel(); if (act === 'dup') return dupSel(); if (act === 'all') return toAllSteps();
+  commit();
+  if (act === 'straight') delete e.c; else if (act === 'flip') { [e.x, e.y, e.x2, e.y2] = [e.x2, e.y2, e.x, e.y]; }
+  else if (seg) { const f = seg.dataset.f; if (f === 'quick') { e.label = b.dataset.v; const inp = $('#pLabel'); if (inp) inp.value = e.label; } else { e[f] = b.dataset.v; $$('button', seg).forEach(x => x.classList.toggle('on', x === b)); } }
+  changed();
+});
+$('#tabEl').addEventListener('click', () => showTab('el')); $('#tabDr').addEventListener('click', () => showTab('dr'));
+function showTab(w) { $('#tabEl').classList.toggle('on', w === 'el'); $('#tabDr').classList.toggle('on', w === 'dr'); $('#paneEl').hidden = w !== 'el'; $('#paneDr').hidden = w !== 'dr'; }
+
+/* ---------------- drill panel ---------------- */
+function fillDrillPanel() {
+  const d = state.drill; $('#title').value = d.title || ''; $('#cat').value = d.category || 'Block'; $('#dur').value = d.duration || ''; $('#pl').value = d.players || '';
+  $('#nOrg').value = d.notes.org || ''; $('#nCoach').value = d.notes.coach || ''; $('#nProg').value = d.notes.prog || '';
+  $$('button', $('#segOrient')).forEach(b => b.classList.toggle('on', b.dataset.v === d.orient));
+  $$('button', $('#segHalf')).forEach(b => b.classList.toggle('on', (b.dataset.v === '1') === !!d.half));
+  $('#tZones').checked = !!d.zones; $('#tSnap').checked = state.snap;
+}
+function markDirty() { state.dirty = true; state.drill.updatedAt = Date.now(); scheduleDraft(); $('#dirty').hidden = false; }
+$('#title').addEventListener('input', e => { state.drill.title = e.target.value; markDirty(); });
+$('#cat').addEventListener('change', e => { state.drill.category = e.target.value; markDirty(); });
+$('#dur').addEventListener('input', e => { state.drill.duration = e.target.value; markDirty(); });
+$('#pl').addEventListener('input', e => { state.drill.players = e.target.value; markDirty(); });
+$('#nOrg').addEventListener('input', e => { state.drill.notes.org = e.target.value; markDirty(); });
+$('#nCoach').addEventListener('input', e => { state.drill.notes.coach = e.target.value; markDirty(); });
+$('#nProg').addEventListener('input', e => { state.drill.notes.prog = e.target.value; markDirty(); });
+$('#segOrient').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; commit(); state.drill.orient = b.dataset.v; fillDrillPanel(); changed(); });
+$('#segHalf').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; commit(); state.drill.half = b.dataset.v === '1'; fillDrillPanel(); changed(); });
+$('#tZones').addEventListener('change', e => { state.drill.zones = e.target.checked; changed(); });
+$('#tSnap').addEventListener('change', e => { state.snap = e.target.checked; LS.set('vds.snap', state.snap); });
+
+/* ---------------- steps ---------------- */
+function renderSteps() {
+  const d = state.drill;
+  $('#stepList').innerHTML = d.steps.map((s, i) => `<button class="stepchip ${i === state.step ? 'on' : ''}" data-i="${i}"><span class="n">${i + 1}</span><span class="nm">${esc(s.name || '')}</span></button>`).join('');
+  $('#stepName').value = cur().name || '';
+  $('#bStepDel').disabled = d.steps.length <= 1; $('#bStepL').disabled = state.step === 0; $('#bStepR').disabled = state.step >= d.steps.length - 1;
+}
+$('#stepList').addEventListener('click', e => { const b = e.target.closest('.stepchip'); if (!b || state.playing) return; state.step = +b.dataset.i; state.sel = null; render(); });
+$('#stepName').addEventListener('input', e => { cur().name = e.target.value; markDirty(); const chip = $$('.stepchip .nm')[state.step]; if (chip) chip.textContent = e.target.value; });
+$('#bStepAdd').addEventListener('click', () => { commit(); const s = clone(cur()); s.name = t('step') + ' ' + (state.drill.steps.length + 1); state.drill.steps.splice(state.step + 1, 0, s); state.step++; state.sel = null; changed(); });
+$('#bStepL').addEventListener('click', () => moveStep(-1)); $('#bStepR').addEventListener('click', () => moveStep(1));
+function moveStep(dir) { const st = state.drill.steps, i = state.step, j = i + dir; if (j < 0 || j >= st.length) return; commit(); [st[i], st[j]] = [st[j], st[i]]; state.step = j; changed(); }
+$('#bStepDel').addEventListener('click', () => { const st = state.drill.steps; if (st.length <= 1) return toast(t('stepdel')); commit(); st.splice(state.step, 1); state.step = Math.min(state.step, st.length - 1); state.sel = null; changed(); });
+
+/* ---------------- playback ---------------- */
+let playTimer = null, raf = null;
+$('#bPlay').addEventListener('click', () => state.playing ? stopPlay() : startPlay());
+function startPlay() {
+  state.playing = true; state.sel = null; panelKey = null; $('#playbadge').hidden = false; $('#bPlay').textContent = '■ ' + t('stop'); updateHint(); renderPanel();
+  runPlay(0);
+}
+function stopPlay() { state.playing = false; clearTimeout(playTimer); cancelAnimationFrame(raf); $('#playbadge').hidden = true; $('#bPlay').innerHTML = '▶ <span data-i18n="play">' + t('play') + '</span>'; render(); }
+function runPlay(i) {
+  const steps = state.drill.steps, speed = parseFloat($('#speed').value) || 1, dur = 950 / speed, hold = 650 / speed;
+  $('#playbadge').textContent = '▶ ' + (i + 1) + '/' + steps.length + ' · ' + (steps[i].name || '');
+  state.step = i; renderSteps();
+  if (i >= steps.length - 1) {
+    renderPlay(steps[steps.length - 1].els);
+    playTimer = setTimeout(() => { if ($('#loop').checked && state.playing) { renderPlay(steps[0].els); playTimer = setTimeout(() => runPlay(0), hold); } else stopPlay(); }, hold * 1.8);
+    return;
+  }
+  const A = steps[i].els, B = steps[i + 1].els, bmap = new Map(B.map(e => [e.id, e]));
+  renderPlay(A);
+  playTimer = setTimeout(() => {
+    const t0 = performance.now();
+    const tick = now => {
+      if (!state.playing) return; const u = Math.min(1, (now - t0) / dur), s = u < .5 ? 2 * u * u : -1 + (4 - 2 * u) * u;
+      const scene = A.map(e => { const b = bmap.get(e.id); if (!b) return e; const n = clone(e); for (const k of ['x', 'y', 'x2', 'y2']) if (typeof e[k] === 'number' && typeof b[k] === 'number') n[k] = e[k] + (b[k] - e[k]) * s; if (e.c && b.c) n.c = { x: e.c.x + (b.c.x - e.c.x) * s, y: e.c.y + (b.c.y - e.c.y) * s }; return n; });
+      renderPlay(scene); if (u < 1) raf = requestAnimationFrame(tick); else runPlay(i + 1);
+    };
+    raf = requestAnimationFrame(tick);
+  }, hold);
+}
+/* ---------------- toast / confirm / modals ---------------- */
+let toastT = null;
+function toast(msg) { const h = $('#toastHost'); h.innerHTML = `<div class="toast">${esc(msg)}</div>`; clearTimeout(toastT); toastT = setTimeout(() => { h.innerHTML = ''; }, 2400); }
+function confirmBar(msg, ok) {
+  const h = $('#confirmHost');
+  h.innerHTML = `<div class="confirm"><span>${esc(msg)}</span><button class="btn sm primary" id="cYes">${t('yes')}</button><button class="btn sm" id="cNo">${t('no')}</button></div>`;
+  $('#cYes').onclick = () => { h.innerHTML = ''; ok(); }; $('#cNo').onclick = () => { h.innerHTML = ''; };
+}
+function openModal(id) { $(id).hidden = false; }
+function closeModals() { $$('.modal').forEach(m => { m.hidden = true; }); }
+$$('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) closeModals(); }));
+
+/* ---------------- library & draft ---------------- */
+const LIBKEY = 'vds.lib.v1', DRAFTKEY = 'vds.draft.v1';
+let draftT = null;
+function scheduleDraft() { clearTimeout(draftT); draftT = setTimeout(() => LS.set(DRAFTKEY, { drill: state.drill, step: state.step, dirty: state.dirty }), 300); }
+function persistLib() { LS.set(LIBKEY, state.lib); }
+function valid(d) { return !!(d && typeof d === 'object' && Array.isArray(d.steps) && d.steps.length && d.steps.every(s => s && Array.isArray(s.els))); }
+function normalize(d) {
+  const n = newDrill(''); const o = Object.assign(n, d);
+  o.id = String(o.id || uid()); o.title = String(o.title || ''); o.notes = Object.assign({ org: '', coach: '', prog: '' }, o.notes || {});
+  o.orient = o.orient === 'h' ? 'h' : 'v'; o.half = !!o.half; o.zones = o.zones !== false; o.category = CATS.includes(o.category) ? o.category : 'Block';
+  o.steps = o.steps.map((s, i) => ({ name: String(s.name || (t('step') + ' ' + (i + 1))), els: s.els.filter(e => e && e.t && ORDER[e.t] != null).map(e => ({ ...e, id: String(e.id || uid()) })) }));
+  o.updatedAt = +o.updatedAt || Date.now(); o.createdAt = +o.createdAt || o.updatedAt; return o;
+}
+function openDrill(d) { state.drill = normalize(clone(d)); state.step = 0; state.sel = null; state.undo = []; state.redo = []; state.dirty = false; panelKey = null; fillDrillPanel(); scheduleDraft(); render(); }
+function saveDrill() {
+  const d = state.drill; if (!d.title.trim()) { d.title = t('untitled'); $('#title').value = d.title; }
+  d.updatedAt = Date.now(); delete d.example;
+  const i = state.lib.findIndex(x => x.id === d.id), copy = clone(d); if (i >= 0) state.lib[i] = copy; else state.lib.unshift(copy);
+  persistLib(); state.dirty = false; $('#dirty').hidden = true; scheduleDraft(); toast(t('saved'));
+}
+function newDrillAction() { const go = () => { openDrill(newDrill('')); showTab('dr'); $('#title').focus(); toast(t('newdone')); }; state.dirty ? confirmBar(t('confirm_new'), go) : go(); }
+function renderLib() {
+  const q = ($('#libQ').value || '').toLowerCase(), c = $('#libCat').value, L = $('#libList');
+  const items = state.lib.filter(d => (!c || d.category === c) && (!q || (d.title || '').toLowerCase().includes(q) || JSON.stringify(d.notes || {}).toLowerCase().includes(q))).sort((a, b) => b.updatedAt - a.updatedAt);
+  if (!items.length) { L.innerHTML = `<p class="empty">${t('nolib')}</p>`; return; }
+  L.innerHTML = items.map(d => `<div class="libitem" data-id="${esc(d.id)}"><div><div class="t">${esc(d.title || t('untitled'))} ${d.example ? `<span class="chip ex">${t('example')}</span>` : ''}</div>
+    <div class="m"><span class="chip">${esc(d.category || '')}</span> · ${d.steps.length} ${t('steps')} · ${new Date(d.updatedAt).toLocaleDateString()}</div></div>
+    <div class="acts"><button class="btn sm primary" data-a="open">${t('load')}</button><button class="btn sm" data-a="dup" title="${t('dup')}">⧉</button><button class="btn sm danger" data-a="del" title="${t('del')}">🗑</button></div></div>`).join('');
+}
+$('#libList').addEventListener('click', e => {
+  const it = e.target.closest('.libitem'); if (!it) return; const d = state.lib.find(x => x.id === it.dataset.id); if (!d) return;
+  const b = e.target.closest('button'), a = b ? b.dataset.a : 'open';
+  if (a === 'del') { confirmBar(t('confirm_del'), () => { state.lib = state.lib.filter(x => x.id !== d.id); persistLib(); renderLib(); toast(t('deleted')); }); return; }
+  if (a === 'dup') { const n = clone(d); n.id = uid(); n.title = (d.title || '') + ' (2)'; n.updatedAt = Date.now(); delete n.example; state.lib.unshift(n); persistLib(); renderLib(); toast(t('saved_as')); return; }
+  const go = () => { openDrill(d); closeModals(); }; state.dirty ? confirmBar(t('confirm_new'), go) : go();
+});
+$('#bLib').addEventListener('click', () => { const sel = $('#libCat'); sel.innerHTML = `<option value="">${t('allcats')}</option>` + CATS.map(c => `<option>${c}</option>`).join(''); renderLib(); openModal('#mLib'); });
+$('#libQ').addEventListener('input', renderLib); $('#libCat').addEventListener('change', renderLib);
+$('#bSave').addEventListener('click', saveDrill); $('#bNew').addEventListener('click', newDrillAction);
+$('#bUndo').addEventListener('click', undo); $('#bRedo').addEventListener('click', redo);
+$('#bHelp').addEventListener('click', () => openModal('#mHelp'));
+$('#bExport').addEventListener('click', () => { $('#xPrev').hidden = true; openModal('#mExport'); });
+$('#bLang').addEventListener('click', () => { LANG = LANG === 'de' ? 'en' : 'de'; LS.set('vds.lang', LANG); applyI18n(); panelKey = null; if (!state.playing) render(); });
+
+/* ---------------- codes (transfer between devices) ---------------- */
+const b64e = s => btoa(unescape(encodeURIComponent(s))), b64d = s => decodeURIComponent(escape(atob(s)));
+const enc = o => 'VDS1:' + b64e(JSON.stringify(o)), encLib = o => 'VDSLIB1:' + b64e(JSON.stringify(o));
+function dec(s) { const m = (s || '').trim().match(/^(VDSLIB1|VDS1):([A-Za-z0-9+/=\s]+)$/); if (!m) return null; try { return { kind: m[1], data: JSON.parse(b64d(m[2].replace(/\s+/g, ''))) }; } catch (e) { return null; } }
+async function copyText(txt) { try { await navigator.clipboard.writeText(txt); toast(t('copied')); } catch (e) { const ta = $('#codeIn'); openModal('#mLib'); ta.value = txt; ta.focus(); ta.select(); toast(t('copyfail')); } }
+$('#bCopyCode').addEventListener('click', () => copyText(enc(state.drill)));
+$('#xCode').addEventListener('click', () => copyText(enc(state.drill)));
+$('#bCopyLib').addEventListener('click', () => copyText(encLib(state.lib)));
+$('#bImport').addEventListener('click', () => {
+  const r = dec($('#codeIn').value); if (!r) return toast(t('badcode'));
+  const list = (r.kind === 'VDS1' ? [r.data] : Array.isArray(r.data) ? r.data : []).filter(valid).map(normalize); let n = 0;
+  for (const d of list) { d.updatedAt = Date.now(); const i = state.lib.findIndex(x => x.id === d.id); if (i >= 0) state.lib[i] = d; else state.lib.unshift(d); n++; }
+  persistLib(); renderLib(); $('#codeIn').value = ''; toast(n + ' ' + t('imported'));
+  if (n === 1 && r.kind === 'VDS1') { openDrill(list[0]); closeModals(); }
+});
+
+/* ---------------- downloads capability & export ---------------- */
+let DL = null;
+const STANDALONE = !(window.claude && typeof window.claude.use === 'function');
+const dlReady = (async () => { try { if (!STANDALONE) DL = await window.claude.use('downloads'); } catch (e) { DL = null; } })();
+function anchorSave(filename, data) {
+  const blob = data instanceof Blob ? data : new Blob([data], { type: /\.html$/.test(filename) ? 'text/html' : /\.svg$/.test(filename) ? 'image/svg+xml' : 'application/json' });
+  const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000); toast(t('dlok')); return 'saved';
+}
+async function saveFile(filename, data) {
+  await dlReady; if (!DL) return STANDALONE ? anchorSave(filename, data) : 'none';
+  try { await DL.save({ filename, data }); toast(t('dlok')); return 'saved'; }
+  catch (e) { toast(e && e.code === 'declined' ? t('dldecl') : t('dlnofile')); return 'fail'; }
+}
+function svgImage(svgStr) {
+  return new Promise((res, rej) => { const url = URL.createObjectURL(new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })); const img = new Image();
+    img.onload = () => { res(img); setTimeout(() => URL.revokeObjectURL(url), 5000); }; img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('svg')); }; img.src = url; });
+}
+async function svgToPng(svgStr, w, h, scale) {
+  const img = await svgImage(svgStr), c = document.createElement('canvas'); c.width = w * scale; c.height = h * scale;
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+  return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('png')), 'image/png'));
+}
+async function pngAll() {
+  const d = state.drill, vb = viewBoxOf(d), sc = 2, gap = 22 * sc, labelH = 44 * sc, n = d.steps.length;
+  const W = n * vb[2] * sc + (n + 1) * gap, H = vb[3] * sc + labelH + 2 * gap, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#1E2A33'; g.font = `700 ${15 * sc}px Helvetica, Arial, sans-serif`; g.fillText(d.title || '', gap, gap + 14 * sc);
+  for (let i = 0; i < n; i++) {
+    const img = await svgImage(exportSVG(d.steps[i].els, d)), x = gap + i * (vb[2] * sc + gap), y = gap + labelH;
+    g.drawImage(img, x, y, vb[2] * sc, vb[3] * sc); g.font = `600 ${11 * sc}px Helvetica, Arial, sans-serif`; g.fillStyle = '#5B6B78'; g.fillText(`${i + 1} · ${d.steps[i].name || ''}`, x, y - 7 * sc);
+  }
+  return new Promise(res => c.toBlob(res, 'image/png'));
+}
+const fname = d => ((d.title || 'drill').toLowerCase().replace(/[^a-z0-9äöüß]+/gi, '-').replace(/^-|-$/g, '') || 'drill');
+let lastExport = null, prevUrl = null;
+async function showExport(blob, filename, isImage) {
+  lastExport = { blob, filename }; const prev = $('#xPrev'), img = $('#xImg'); prev.hidden = false;
+  if (prevUrl) URL.revokeObjectURL(prevUrl); prevUrl = null;
+  if (isImage) { prevUrl = URL.createObjectURL(blob); img.src = prevUrl; img.hidden = false; } else img.hidden = true;
+  await dlReady; const can = !!DL || STANDALONE; $('#xSave').hidden = !can; $('#xNote').textContent = can ? filename : (isImage ? t('dlno') : t('dlnofile'));
+}
+$('#xSave').addEventListener('click', () => lastExport && saveFile(lastExport.filename, lastExport.blob));
+$('#xPng').addEventListener('click', async () => { const d = state.drill, vb = viewBoxOf(d); try { showExport(await svgToPng(exportSVG(cur().els, d), vb[2], vb[3], 3), `${fname(d)}_${state.step + 1}.png`, true); } catch (e) { toast('PNG: ' + e.message); } });
+$('#xPngAll').addEventListener('click', async () => { try { showExport(await pngAll(), `${fname(state.drill)}_alle-schritte.png`, true); } catch (e) { toast('PNG: ' + e.message); } });
+$('#xSvg').addEventListener('click', () => showExport(new Blob([exportSVG(cur().els, state.drill)], { type: 'image/svg+xml' }), `${fname(state.drill)}_${state.step + 1}.svg`, true));
+$('#xJson').addEventListener('click', () => showExport(new Blob([JSON.stringify(state.drill, null, 1)], { type: 'application/json' }), `${fname(state.drill)}.json`, false));
+$('#bDlLib').addEventListener('click', async () => { if (await saveFile('drill-bibliothek-backup.json', JSON.stringify(state.lib)) === 'none') toast(t('dlnofile')); });
+
+/* ---------------- example drills ---------------- */
+function seeds() {
+  const pl = (id, team, x, y, label, ring) => ({ id, t: 'player', team, x, y, label, ring: !!ring });
+  const ar = (id, k, x, y, x2, y2, label, c) => ({ id, t: 'arrow', k, x, y, x2, y2, label: label || '', ...(c ? { c } : {}) });
+  const base = (title, cat, notes, steps, extra) => normalize({ id: 'ex-' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-'), title, category: cat, duration: '20 min', players: '15–18', notes, steps, example: true, ...(extra || {}) });
+  const kasten = base('Kasten-Blocker · Cover', 'Block',
+    { org: 'Angreifer Z4, Zuspieler Z2/3, 2–3 Abdecker in enger Schale. Gegenüber: Blocker auf Kasten + Feeder. Kontinuierlich: Zuspiel → Angriff → Block → Cover → Zuspiel.', coach: 'Deckung beginnt im Anlauf. Tief bleiben, Plattform bereit, rufen. Zuspieler immer bereit.', prog: '2 Blocker auf 2 Kästen; Angreifer auf Z2 wechseln.' },
+    [{ name: 'Zuspiel', els: [{ id: 'bx', t: 'box', x: 1.5, y: 8.6 }, pl('bl', 'b', 1.5, 8.6, 'B'), pl('fd', 'b', 3.4, 8.1, 'F'), pl('at', 'a', 1.0, 13.0, 'A'), pl('zs', 'a', 6.5, 10.2, 'Z', true), pl('c1', 'a', 3.3, 12.3), pl('c2', 'a', 0.5, 12.3), pl('c3', 'a', 2.0, 14.4), { id: 'ba', t: 'ball', x: 6.3, y: 9.9 },
+        ar('a1', 'pass', 6.2, 9.9, 1.9, 9.9, 'Zuspiel', { x: 4, y: 8.9 }), ar('a2', 'run', 1.0, 12.6, 1.5, 10.6, '')] },
+     { name: 'Angriff & Block', els: [{ id: 'bx', t: 'box', x: 1.5, y: 8.6 }, pl('bl', 'b', 1.5, 8.6, 'B'), pl('fd', 'b', 3.4, 8.1, 'F'), pl('at', 'a', 1.5, 10.3, 'A'), pl('zs', 'a', 6.5, 10.2, 'Z', true), pl('c1', 'a', 2.7, 11.6), pl('c2', 'a', 0.6, 11.6), pl('c3', 'a', 1.8, 13.4), { id: 'ba', t: 'ball', x: 1.5, y: 9.4 },
+        ar('a3', 'ball', 1.5, 9.9, 1.5, 9.1, ''), ar('a4', 'ball', 1.6, 9.1, 2.5, 11.9, 'Abpraller', { x: 1.3, y: 10.6 })] },
+     { name: 'Cover → Zuspieler', els: [{ id: 'bx', t: 'box', x: 1.5, y: 8.6 }, pl('bl', 'b', 1.5, 8.6, 'B'), pl('fd', 'b', 3.4, 8.1, 'F'), pl('at', 'a', 1.0, 12.4, 'A'), pl('zs', 'a', 6.5, 10.2, 'Z', true), pl('c1', 'a', 2.7, 11.6), pl('c2', 'a', 0.6, 11.6), pl('c3', 'a', 1.8, 13.4), { id: 'ba', t: 'ball', x: 2.6, y: 11.9 },
+        ar('a5', 'pass', 2.8, 11.7, 6.2, 10.4, 'zum Zuspieler', { x: 4.5, y: 9.6 }), ar('a6', 'run', 1.5, 10.6, 1.0, 12.1, 'neu anlaufen')] }]);
+  const block3 = base('3er-Block schließen · Ball rechts', 'Block',
+    { org: 'Gegner greift über Außen an. Pos. 2 ist Anker, Mitte schließt, Pos. 4 kommt dazu (nur bei hohem Ball). Pos. 1 rückt hinter den Block (Finte).', coach: 'Anker bewegt sich nicht. Schulter an Schulter, keine Lücke. Spät springen, über das Netz drücken.', prog: 'Zufällige Seite; dann mit echter Annahme davor.' },
+    [{ name: 'Grundposition', els: [pl('oh', 'b', 8.0, 7.6, 'A'), pl('oz', 'b', 5.5, 8.0, 'Z'), { id: 'ba', t: 'ball', x: 5.7, y: 7.7 }, pl('p4', 'a', 1.5, 9.7, '4'), pl('p3', 'a', 4.5, 9.7, '3'), pl('p2', 'a', 7.5, 9.7, '2'), pl('p5', 'a', 1.5, 15, '5'), pl('p6', 'a', 4.5, 16.5, '6'), pl('p1', 'a', 7.5, 15, '1'),
+        ar('s1', 'pass', 5.8, 7.7, 7.8, 7.4, 'hoher Ball', { x: 6.8, y: 6.2 })] },
+     { name: 'Block geschlossen', els: [pl('oh', 'b', 8.0, 7.6, 'A'), pl('oz', 'b', 5.5, 8.0, 'Z'), { id: 'ba', t: 'ball', x: 7.9, y: 8.6 }, pl('p4', 'a', 5.7, 9.7, '4'), pl('p3', 'a', 6.7, 9.7, '3'), pl('p2', 'a', 7.7, 9.7, '2'), pl('p5', 'a', 1.6, 14.4, '5'), pl('p6', 'a', 4.2, 16.8, '6'), pl('p1', 'a', 7.6, 13.0, '1'),
+        ar('s2', 'run', 4.5, 9.7, 6.5, 9.7, 'schließen'), ar('s3', 'run', 1.5, 9.7, 5.5, 9.7, ''), ar('s4', 'run', 7.5, 15, 7.6, 13.3, 'Finte'), ar('s5', 'ball', 8.0, 7.9, 7.2, 10.6, 'geblockt'), { id: 'z1', t: 'zone', x: 6.3, y: 12, w: 2.4, h: 3, label: 'Linie' }] }]);
+  const serve = base('Zonen-Aufschlag', 'Aufschlag',
+    { org: 'Ziele (Matten/Hütchen) in den gegnerischen Zonen 1, 6, 5. Jede/r 10 Aufschläge, Treffer zählen und im Tracker notieren.', coach: 'Gleicher Wurf jedes Mal, Treffpunkt vor der Schulter, kurzer Nachschwung.', prog: 'Nur tiefe Zonen, dann Sprung-Flatter; Zone wird angesagt.' },
+    [{ name: 'Zonen 1 · 6 · 5', els: [pl('sv', 'a', 4.5, 18.7, 'S'), { id: 'ba', t: 'ball', x: 4.5, y: 18.1 }, { id: 'q1', t: 'zone', x: 0.4, y: 0.4, w: 2.3, h: 2.2, label: '1' }, { id: 'q6', t: 'zone', x: 3.35, y: 0.4, w: 2.3, h: 2.2, label: '6' }, { id: 'q5', t: 'zone', x: 6.3, y: 0.4, w: 2.3, h: 2.2, label: '5' },
+        ar('v1', 'ball', 4.5, 17.8, 1.55, 1.9, ''), ar('v2', 'ball', 4.5, 17.8, 4.5, 1.9, ''), ar('v3', 'ball', 4.5, 17.8, 7.45, 1.9, ''), { id: 'tx', t: 'text', x: 4.5, y: 4.2, txt: '10 Aufschläge · Treffer zählen', size: 10 }] }], { duration: '10 min' });
+  return [kasten, block3, serve];
+}
+
+/* ---------------- init ---------------- */
+(function init() {
+  LANG = LS.get('vds.lang', 'de') === 'en' ? 'en' : 'de'; state.snap = LS.get('vds.snap', true) !== false; applyI18n();
+  state.lib = LS.get(LIBKEY, []); if (!Array.isArray(state.lib)) state.lib = []; state.lib = state.lib.filter(valid).map(normalize);
+  if (!state.lib.length && !LS.get('vds.seeded', false)) { state.lib = seeds(); persistLib(); LS.set('vds.seeded', true); }
+  const draft = LS.get(DRAFTKEY, null);
+  if (draft && valid(draft.drill)) { state.drill = normalize(draft.drill); state.step = Math.min(+draft.step || 0, state.drill.steps.length - 1); state.dirty = !!draft.dirty; }
+  else if (state.lib.length) state.drill = clone(state.lib[0]); else state.drill = newDrill('');
+  fillDrillPanel(); render();
+})();
+/* ---------------- planner: texts + drill bank ---------------- */
+Object.assign(I18N.de, { planner: 'Planer', studio: 'Studio', p_players: 'Spieler heute', p_tech: 'Technik (min)', p_game: 'Spiel (min)', p_focus: 'Schwerpunkte (max. 3)',
+  p_run: 'Laufbetont: Karussell-Übungen bevorzugen', p_box: 'Kasten / stabiler Stuhl vorhanden', p_go: 'Plan erstellen', p_dice: 'Neu würfeln', p_copy: 'Plan kopieren',
+  p_html: 'Als druckbare Datei speichern', p_tolib: 'Alle Übungen in die Bibliothek', p_open: 'Im Studio öffnen', p_swap: 'Andere Übung', p_ball: 'am Ball', p_move: 'in Bewegung',
+  p_side: 'Nebenstation', p_wait: 'längste Pause', p_flow: 'Ablauf', p_rot: 'Wechsel', p_cue: 'Coaching', p_runchip: 'Lauf', p_plan: 'Trainingsplan', warm: 'Aufwärmen',
+  p_note: 'Ein Netz, ein Feld. Jede Übung verteilt alle Spieler auf Rollen. Die Pause ist eine Schätzung: Länge der Reihe × Sekunden pro Ball.',
+  p_sidehint: 'Nebenstation an der Seitenlinie: Band, Blockschritte oder Pepper – wechselt alle 2 min ins Feld.', p_added: 'Übungen in der Bibliothek gespeichert',
+  p_nodl: 'Speichern hier nicht möglich – nutze „Plan kopieren“.', p_noidle: 'ohne Aufgabe', p_players_s: 'Spieler', p_maxwait: 'längste Pause im Plan', p_none: 'Keine passende Übung für diese Auswahl.' });
+Object.assign(I18N.en, { planner: 'Planner', studio: 'Studio', p_players: 'Players today', p_tech: 'Technical (min)', p_game: 'Game (min)', p_focus: 'Focus areas (max 3)',
+  p_run: 'Running-heavy: prefer carousel drills', p_box: 'Box / sturdy chair available', p_go: 'Create plan', p_dice: 'Reshuffle', p_copy: 'Copy plan',
+  p_html: 'Save as printable file', p_tolib: 'All drills to library', p_open: 'Open in studio', p_swap: 'Other drill', p_ball: 'on the ball', p_move: 'moving',
+  p_side: 'side station', p_wait: 'longest pause', p_flow: 'Flow', p_rot: 'Rotation', p_cue: 'Coaching', p_runchip: 'Run', p_plan: 'Training plan', warm: 'Warm-up',
+  p_note: 'One net, one court. Every drill assigns all players to roles. The pause is an estimate: queue length × seconds per ball.',
+  p_sidehint: 'Side station on the sideline: band, block steps or pepper – rotates in every 2 min.', p_added: 'Drills saved to the library',
+  p_nodl: 'Saving is not available here – use “Copy plan”.', p_noidle: 'without a task', p_players_s: 'players', p_maxwait: 'longest pause in the plan', p_none: 'No matching drill for this selection.' });
+const CATN = { Aufschlag: 'Serve', Annahme: 'Reception', Angriff: 'Attack', Block: 'Block', Abwehr: 'Defense', Spiel: 'Game', warm: 'Warm-up' };
+const L = o => (o && (o[LANG] || o.de)) || '';
+const R = (de, en, min, max, o) => Object.assign({ de, en, min, max, act: 'ball' }, o || {});
+const SIX = [[1.5, 10.5], [4.5, 10.5], [7.5, 10.5], [1.5, 15], [4.5, 16.2], [7.5, 15]];
+const TRIO = [[1.5, 15], [4.5, 16.2], [7.5, 15]];
+const RUNG = [1.5, 13.6, 3, 0.95, 3];
+
+const DRILLS = [
+  { id: 'labc', cats: ['warmrun'], run: 1, min: 4, lvl: 1, name: { de: 'Lauf-ABC in drei Bahnen', en: 'Running ABC in three lanes' },
+    org: { de: 'Alle in drei Bahnen an der Grundlinie. Bis zum Netz: Anfersen, Kniehebelauf, Sidesteps, Rückwärtslauf; am Netz 2 Blocksprünge, außen zurücktraben. Die nächste Reihe startet, wenn die vordere an der 3-m-Linie ist.', en: 'Everyone in three lanes on the baseline. To the net: butt kicks, high knees, side steps, backpedal; 2 block jumps at the net, jog back outside. The next row starts when the row ahead reaches the 3 m line.' },
+    rot: { de: 'Dauerlauf im Kreis – niemand steht.', en: 'Continuous loop – nobody stands.' }, cue: { de: 'Locker steigern, die letzten zwei Bahnen im Sprint.', en: 'Build up gradually, sprint the last two lanes.' },
+    roles: [R('Läufer in 3 Bahnen', 'Runners in 3 lanes', 1, 99, { act: 'move', g: RUNG })], st: [['run', 1.5, 12.6, 1.5, 9.6], ['run', 4.5, 12.6, 4.5, 9.6], ['run', 7.5, 12.6, 7.5, 9.6], ['run', 9.6, 9.8, 9.6, 18]] },
+  { id: 'pendel', cats: ['warmrun'], run: 1, min: 4, lvl: 1, name: { de: 'Pendelsprint mit Blocksprung', en: 'Shuttle sprint with block jump' },
+    org: { de: 'Dreierreihen an der Grundlinie. Sprint zur 3-m-Linie und zurück, dann zum Netz: Blocksprung, drei Sidesteps, Blocksprung, außen zurück.', en: 'Rows of three on the baseline. Sprint to the 3 m line and back, then to the net: block jump, three side steps, block jump, back around the outside.' },
+    rot: { de: 'Reihen starten im 3-Sekunden-Takt.', en: 'Rows start every 3 seconds.' }, cue: { de: 'Tief bremsen, am Netz die Hände hoch.', en: 'Brake low, hands high at the net.' },
+    roles: [R('Läufer in 3 Bahnen', 'Runners in 3 lanes', 1, 99, { act: 'move', g: RUNG })], st: [['run', 1.5, 12.6, 1.5, 12.1], ['run', 4.5, 12.6, 4.5, 9.6], ['run', 4.5, 9.6, 6.5, 9.6], ['run', 9.6, 9.8, 9.6, 18]] },
+  { id: 'netzkar', cats: ['warmball'], run: 1, min: 4, lvl: 1, name: { de: 'Netz-Karussell: pritschen und unten durch', en: 'Net carousel: set over, run under' },
+    org: { de: 'Zwei Reihenpaare stehen sich am Netz gegenüber. Ball über das Netz pritschen, dann unter dem Netz durch ans Ende der anderen Reihe laufen.', en: 'Two pairs of lines face each other at the net. Set the ball over the net, then run under the net to the end of the opposite line.' },
+    rot: { de: 'Jede/r folgt dem eigenen Ball.', en: 'Everyone follows their own ball.' }, cue: { de: 'Hoch spielen, früh unter den Ball, beim Laufen Blick nach vorn.', en: 'Play high, get under the ball early, eyes up while running.' },
+    roles: [R('Reihen unsere Seite', 'Lines our side', 2, 9, { g: [3, 10.8, 3, 0.95, 2], wait: 3, lanes: 2 }), R('Reihen Gegenseite', 'Lines far side', 2, 9, { team: 'b', g: [3, 7.2, 3, -0.95, 2], wait: 3, lanes: 2 })],
+    st: [['pass', 3, 10.4, 3, 7.6, 2.2, 9], ['pass', 6, 7.6, 6, 10.4, 6.8, 9], ['run', 3.5, 10.6, 3.5, 7.4]] },
+  { id: 'pepper', cats: ['warmball'], min: 4, lvl: 1, name: { de: 'Paar-Pepper über das Netz', en: 'Partner pepper over the net' },
+    org: { de: 'Paare gegenüber am Netz, ein Ball pro Paar: pritschen, baggern, dann Bagger–Pritsch–lockerer Schlag. Bei ungerader Zahl eine Dreiergruppe.', en: 'Pairs facing each other across the net, one ball per pair: set, pass, then pass–set–easy swing. With an odd number, one group of three.' },
+    rot: { de: 'Nach 2 Minuten rückt eine Seite einen Platz weiter – neuer Partner.', en: 'After 2 minutes one side shifts one spot – new partner.' }, cue: { de: 'Kontrolle vor Tempo, Schlagschulter aktivieren.', en: 'Control before pace, activate the hitting shoulder.' },
+    roles: [R('Netzseite A', 'Net side A', 1, 9, { g: [0.5, 11.5, 1, 0, 9] }), R('Netzseite B', 'Net side B', 1, 9, { g: [0.5, 6.5, 1, 0, 9] })], st: [['pass', 0.5, 11, 0.5, 7, 1.1, 9], ['pass', 4.5, 7, 4.5, 11, 3.9, 9]] },
+
+  { id: 'servelauf', cats: ['Aufschlag'], run: 1, min: 6, lvl: 1, name: { de: 'Zonen-Aufschlag mit Nachlaufen', en: 'Zone serving and chase your ball' },
+    org: { de: 'Je eine Hälfte an jeder Grundlinie, jede/r mit Ball. Auf Pfiff schlagen alle in die Zielzone auf, sprinten außen am Feld dem eigenen Ball nach und schlagen von der neuen Seite weiter. Wer 10 Treffer hat, ruft.', en: 'Half the group on each baseline, everyone with a ball. On the whistle all serve to the target zone, sprint around the outside after their own ball and continue from the new side. Call out when you reach 10 hits.' },
+    rot: { de: 'Alle gleichzeitig – keine Reihe.', en: 'Everyone at once – no queue.' }, cue: { de: 'Gleicher Wurf jedes Mal, Treffpunkt vor der Schulter, Zone vorher ansagen.', en: 'Same toss every time, contact in front of the shoulder, call the zone first.' },
+    roles: [R('Aufschläger Grundlinie A', 'Servers baseline A', 3, 9, { g: [0.6, 18.9, 1, 0, 9], lab: 'S' }), R('Aufschläger Grundlinie B', 'Servers baseline B', 3, 9, { team: 'b', g: [0.6, -0.9, 1, 0, 9], lab: 'S' })],
+    st: [['zone', 0.3, 0.3, 2.6, 2.4, '1'], ['zone', 6.1, 0.3, 2.6, 2.4, '5'], ['zone', 0.3, 15.3, 2.6, 2.4, '5'], ['zone', 6.1, 15.3, 2.6, 2.4, '1'], ['ball', 2.6, 18.5, 1.6, 2], ['ball', 6.6, -0.5, 7.4, 16], ['run', 9.7, 18, 9.7, 0.5]] },
+  { id: 'butterfly', cats: ['Aufschlag', 'Annahme'], run: 1, min: 6, lvl: 1, name: { de: 'Aufschlag-Annahme-Karussell', en: 'Serve-receive carousel (butterfly)' },
+    org: { de: 'Auf beiden Seiten: Aufschläger, Annahmespieler, Zielspieler am Netz. Aufschlag longline, Annahme zum Zielspieler, dieser fängt den Ball und läuft damit zur Aufschlagreihe seiner Seite.', en: 'On both sides: servers, passers and a target at the net. Serve down the line, pass to the target, who catches the ball and runs it to the serving line on that side.' },
+    rot: { de: 'Aufschlag → dem Ball nach in die Annahme der Gegenseite → Ziel → Aufschlag. Alle laufen.', en: 'Serve → follow the ball to the passing line on the far side → target → serve. Everyone runs.' }, cue: { de: 'Annahme: früh das Brett zeigen, Schultern zum Ziel. Aufschlag: sicher vor hart.', en: 'Passing: early platform, shoulders to the target. Serving: in before hard.' },
+    roles: [R('Aufschläger A', 'Servers A', 1, 4, { g: [6.5, 18.9, 0.9, 0, 4], lab: 'S', wait: 6 }), R('Annahme A', 'Passers A', 1, 4, { g: [2.5, 14.8, 0, 0.95, 1], wait: 6 }), R('Ziel A', 'Target A', 1, 1, { pos: [[5.5, 10.1]], lab: 'Z', ring: 1 }),
+      R('Aufschläger B', 'Servers B', 1, 4, { team: 'b', g: [2.5, -0.9, -0.9, 0, 4], lab: 'S', wait: 6 }), R('Annahme B', 'Passers B', 1, 4, { team: 'b', g: [6.5, 3.2, 0, -0.95, 1], wait: 6 }), R('Ziel B', 'Target B', 1, 1, { team: 'b', pos: [[3.5, 7.9]], lab: 'Z', ring: 1 })],
+    st: [['ball', 6.5, 18.4, 6.5, 3.7], ['pass', 6.3, 3.4, 3.8, 7.6, 4.4, 4.6], ['ball', 2.5, -0.4, 2.5, 14.3], ['pass', 2.7, 14.6, 5.2, 10.4, 4.6, 13.4]] },
+  { id: 'annahme3', cats: ['Annahme'], min: 6, lvl: 2, name: { de: 'Dreier-Annahme im Wellenwechsel', en: 'Three-passer reception in waves' },
+    org: { de: 'Drei Annahmespieler, Zuspieler am Netz, zwei Angreifer verwerten jedes Zuspiel. Gegenüber schlagen die Aufschläger abwechselnd auf, der Rest blockt bzw. sammelt. Jede Annahme wird 3-2-1-0 bewertet.', en: 'Three passers, a setter at the net, two hitters finish every set. Servers alternate from the far side, the rest block or shag. Rate every pass 3-2-1-0.' },
+    rot: { de: 'Nach 5 Bällen wechselt das Trio geschlossen, das wartende Trio sammelt bis dahin Bälle.', en: 'After 5 balls the trio switches as a unit; the waiting trio shags until then.' }, cue: { de: 'Ball rufen, Naht klären, Füße vor dem Ball.', en: 'Call the ball, sort out the seam, feet before the ball.' },
+    roles: [R('Annahme-Trio', 'Passing trio', 3, 3, { pos: TRIO }), R('Zuspieler', 'Setter', 1, 1, { pos: [[6.3, 10.2]], lab: 'Z', ring: 1 }), R('Angreifer', 'Hitters', 0, 2, { pos: [[1, 12.3], [8, 12.3]], lab: 'A', w: 3 }),
+      R('Aufschläger', 'Servers', 2, 6, { team: 'b', g: [1.5, -0.9, 1.2, 0, 6], lab: 'S', wait: 5, lanes: 2, w: 2 }), R('Nächstes Trio (sammelt)', 'Next trio (shagging)', 0, 3, { act: 'move', g: [2.5, 19.1, 2, 0, 3], w: 2 }), R('Block / Bälle', 'Block / balls', 0, 3, { team: 'b', act: 'move', pos: [[1.5, 8.3], [7.5, 8.3], [4.5, 5]], lab: 'B', w: 1.5 })],
+    st: [['ball', 3.9, -0.4, 4.5, 15.7], ['pass', 4.7, 15.9, 6.2, 10.6, 6.2, 13.6], ['pass', 6, 10, 1.4, 10.2, 3.6, 9.2]] },
+  { id: 'angkar', cats: ['Angriff'], run: 1, min: 5, lvl: 1, name: { de: 'Angriffs-Karussell über Z4 und Z2', en: 'Attack carousel through Z4 and Z2' },
+    org: { de: 'Passgeber spielt den Zuspieler an, Zuspiel abwechselnd nach außen auf Z4 und Z2. Gegenüber stehen Block und Feldabwehr und spielen jeden Ball aus.', en: 'A feeder passes to the setter, who sets alternately to Z4 and Z2. Block and floor defense on the far side play every ball out.' },
+    rot: { de: 'Angriff → unter dem Netz durch in den Block → Feldabwehr → Ball holen → hinten in die Angriffsreihe.', en: 'Hit → under the net into the block → floor defense → fetch a ball → back of the hitting line.' }, cue: { de: 'Spät und explosiv anlaufen, langer letzter Schritt, Block sehen und Linie oder Diagonal wählen.', en: 'Late, explosive approach, long last step, see the block and choose line or cross.' },
+    roles: [R('Zuspieler', 'Setters', 1, 2, { pos: [[5.6, 10.1], [3.6, 10.1]], lab: 'Z', ring: 1 }), R('Angreifer Z4', 'Hitters Z4', 2, 5, { g: [0.8, 12.3, 0, 0.95, 1], lab: 'A', wait: 7, w: 3 }), R('Angreifer Z2', 'Hitters Z2', 0, 5, { g: [8.2, 12.3, 0, 0.95, 1], lab: 'A', wait: 7, w: 3 }),
+      R('Passgeber', 'Feeders', 1, 2, { pos: [[4.5, 15.5], [4.5, 16.8]], lab: 'P' }), R('Block', 'Block', 0, 3, { team: 'b', pos: [[1.2, 8.3], [7.8, 8.3], [4.5, 8.3]], lab: 'B', w: 2 }), R('Feldabwehr', 'Floor defense', 1, 3, { team: 'b', pos: [[1.5, 3.5], [7.5, 3.5], [4.5, 1.8]], w: 2 })],
+    st: [['pass', 4.5, 15.1, 5.5, 10.6], ['pass', 5.3, 9.9, 1.3, 10.1, 3.3, 9.1], ['run', 0.8, 11.9, 1, 10.6], ['ball', 1.1, 9.7, 6.4, 3.6]] },
+  { id: 'sideout', cats: ['Angriff', 'Annahme'], run: 1, min: 6, lvl: 2, name: { de: 'Sideout-Wellen', en: 'Side-out waves' },
+    org: { de: 'Ein Trio nimmt an, der Zuspieler stellt, einer der drei greift an. Gegenüber Aufschläger, Block und Abwehr. Punkt für den Sideout nur bei Annahme → Zuspiel → Angriff.', en: 'A trio receives, the setter sets, one of the three attacks. Servers, block and defense on the far side. A side-out only scores with pass → set → attack.' },
+    rot: { de: 'Nach jedem Ballwechsel kommt die nächste Welle; die alte Welle läuft außen herum zum Aufschlag bzw. in den Block.', en: 'After every rally the next wave steps in; the old wave runs around to serve or block.' }, cue: { de: 'Erster Ball entscheidet. Angreifer rufen ihr Zuspiel, alle sichern den Angriff.', en: 'The first contact decides. Hitters call their set, everyone covers the hit.' },
+    roles: [R('Sideout-Trio', 'Side-out trio', 3, 3, { pos: TRIO }), R('Zuspieler', 'Setter', 1, 1, { pos: [[6.3, 10.2]], lab: 'Z', ring: 1 }), R('Nächste Wellen', 'Next waves', 0, 6, { act: 'move', g: [2, 19.1, 1, 0, 6], wait: 12, lanes: 3, w: 2 }),
+      R('Aufschläger', 'Servers', 2, 4, { team: 'b', g: [1.5, -0.9, 1.2, 0, 4], lab: 'S', wait: 6, w: 2 }), R('Block', 'Block', 0, 3, { team: 'b', pos: [[1.5, 8.3], [4.5, 8.3], [7.5, 8.3]], lab: 'B', w: 2.5 }), R('Abwehr', 'Defense', 0, 2, { team: 'b', pos: [[2, 3.5], [7, 3.5]], w: 2 })],
+    st: [['ball', 2.7, -0.4, 4.5, 15.7], ['pass', 4.7, 15.9, 6.2, 10.6, 6.2, 13.6], ['pass', 6, 10, 1.4, 10.2, 3.6, 9.2], ['ball', 1.3, 9.8, 6.6, 3.8]] },
+  { id: 'blockkar', cats: ['Block'], run: 1, min: 6, lvl: 1, name: { de: 'Block-Karussell', en: 'Block carousel' },
+    org: { de: 'Blocker-Trio am Netz, dahinter drei Feldabwehrspieler. Gegenüber: Passgeber, Zuspieler und zwei Angriffsreihen (Z4, Z2) mit Sicherung. Der Block liest den Zuspieler, schließt zum Außen, die Abwehr stellt sich neben den Blockschatten.', en: 'Blocker trio at the net with three floor defenders behind. Far side: feeder, setter and two hitting lines (Z4, Z2) with cover. The block reads the setter and closes to the pin; defense sets up beside the block shadow.' },
+    rot: { de: 'Angriff → unter dem Netz durch → Block (Trio wechselt nach 3 Angriffen) → Feldabwehr → Ball holen → Angriffsreihe.', en: 'Hit → under the net → block (trio switches after 3 attacks) → floor defense → fetch a ball → hitting line.' }, cue: { de: 'Außen ist Anker, Mitte schließt Schulter an Schulter. Spät springen, über das Netz drücken.', en: 'Outside anchors, middle closes shoulder to shoulder. Jump late, press over the net.' },
+    roles: [R('Blocker-Trio', 'Blocker trio', 3, 3, { pos: [[1.5, 9.7], [4.5, 9.7], [7.5, 9.7]], lab: 'B' }), R('Feldabwehr', 'Floor defense', 0, 3, { pos: [[1.2, 14.5], [4.5, 16], [7.8, 14.5]], w: 2.5 }), R('Zuspieler', 'Setter', 1, 1, { team: 'b', pos: [[5.5, 8]], lab: 'Z', ring: 1 }),
+      R('Angreifer Z4', 'Hitters Z4', 1, 4, { team: 'b', g: [8.2, 6.2, 0, -0.95, 1], lab: 'A', wait: 7, w: 3 }), R('Angreifer Z2', 'Hitters Z2', 0, 4, { team: 'b', g: [0.8, 6.2, 0, -0.95, 1], lab: 'A', wait: 7, w: 3 }),
+      R('Passgeber', 'Feeders', 1, 2, { team: 'b', pos: [[4.5, 3], [4.5, 1.8]], lab: 'P' }), R('Sicherung', 'Cover', 0, 2, { team: 'b', pos: [[6.6, 6.6], [2.4, 6.6]], w: 1.5 })],
+    st: [['pass', 4.5, 3.4, 5.4, 7.6], ['pass', 5.8, 8, 7.9, 7.9, 6.9, 8.9], ['run', 4.5, 9.7, 6.4, 9.7], ['ball', 8, 8.2, 3, 14.5]] },
+  { id: 'kasten', cats: ['Block', 'Abwehr'], box: 1, big: 13, min: 6, lvl: 2, name: { de: 'Kasten-Blocker: Angriff sichern', en: 'Box blocker: cover the hitter' },
+    org: { de: 'Der Blocker steht auf einem Kasten am Netz und drückt jeden Angriff zurück. Zuspiel → Angriff → Abpraller retten → zum Zuspieler → nächster Angriff, bis der Ball stirbt; dann wirft der Feeder neu ein. Ab 13 Spielern zweite Gruppe über Z2 mit zweitem Kasten oder Stuhl.', en: 'The blocker stands on a box at the net and presses every hit back. Set → hit → dig the deflection → to the setter → next hit, until the ball dies; then the feeder tosses a new one. From 13 players a second group runs through Z2 with a second box or chair.' },
+    rot: { de: 'Alle 90 Sekunden: Angreifer → Sicherung → Kasten-Blocker → Feeder → Bälle sammeln → Angriffsreihe.', en: 'Every 90 seconds: hitter → cover → box blocker → feeder → shag → hitting line.' }, cue: { de: 'Sicherung beginnt im Anlauf, nicht nach dem Schlag. Tief, Brett bereit, rufen. Einer bleibt immer hinten.', en: 'Cover starts on the approach, not after the swing. Low, platform ready, call it. One player always stays deep.' },
+    roles: [R('Angreifer Z4', 'Hitters Z4', 1, 3, { g: [0.3, 13, 0, 0.95, 1], lab: 'A', wait: 8, w: 3 }), R('Zuspieler', 'Setters', 1, 2, { maxS: 1, pos: [[5, 10.2], [4, 10.2]], lab: 'Z', ring: 1, w: 1.5 }), R('Sicherung Z4', 'Cover Z4', 2, 3, { pos: [[2.9, 11.5], [1.4, 12.1], [3.2, 13.4]], w: 3 }),
+      R('Kasten-Blocker', 'Box blockers', 1, 2, { maxS: 1, team: 'b', pos: [[1.5, 8.5], [7.5, 8.5]], lab: 'B', w: 2.5 }), R('Feeder', 'Feeders', 1, 2, { maxS: 1, team: 'b', pos: [[3.2, 8], [5.8, 8]], lab: 'F', w: 1.5 }),
+      R('Angreifer Z2', 'Hitters Z2', 0, 3, { maxS: 0, g: [8.7, 13, 0, 0.95, 1], lab: 'A', wait: 8, w: 2.4 }), R('Sicherung Z2', 'Cover Z2', 0, 3, { maxS: 0, pos: [[6.1, 11.5], [7.6, 12.1], [5.8, 13.4]], w: 2.4 }), R('Bälle sammeln', 'Shaggers', 0, 3, { team: 'b', act: 'move', pos: [[2, 3], [7, 3], [4.5, 1.5]], w: 1 })],
+    st: n => [['box', 1.5, 8.5]].concat(n >= 13 ? [['box', 7.5, 8.5]] : [], [['pass', 4.8, 10, 1.9, 10, 3.4, 9.2], ['ball', 1.5, 9.9, 1.5, 9.1], ['ball', 1.6, 9.1, 2.5, 11.8, 1.3, 10.6]]) },
+  { id: 'abwehrkar', cats: ['Abwehr'], run: 1, min: 5, lvl: 1, name: { de: 'Abwehr-Karussell mit Gegenangriff', en: 'Defense carousel with counter-attack' },
+    org: { de: 'Zwei Angreifer schlagen kontrolliert von Z4 und Z2 auf das Abwehr-Trio. Abwehr zum Zuspieler, Gegenangriff über außen – der Ball wird ausgespielt. Zwei Blocker stellen die Linie zu.', en: 'Two hitters swing with control from Z4 and Z2 at the defensive trio. Dig to the setter, counter-attack through the pin – play the ball out. Two blockers take the line.' },
+    rot: { de: 'Wer abgewehrt hat, läuft in den Gegenangriff; der nächste rückt sofort in die Abwehr nach. Nach dem Angriff Ball holen und hinten anstellen.', en: 'Whoever dug runs into the counter-attack; the next player steps into defense at once. After hitting, fetch a ball and rejoin the back.' }, cue: { de: 'Neben dem Blockschatten stehen, tief bleiben, Ball hoch in die Feldmitte halten.', en: 'Stand beside the block shadow, stay low, keep the ball high in the middle of the court.' },
+    roles: [R('Angreifer', 'Hitters', 1, 2, { team: 'b', pos: [[8, 7.6], [1, 7.6]], lab: 'A' }), R('Feeder', 'Feeder', 0, 1, { team: 'b', pos: [[4.5, 7.8]], lab: 'F' }), R('Abwehr-Trio', 'Defense trio', 3, 3, { pos: [[1.2, 14.5], [4.5, 16.2], [7.8, 14.5]] }),
+      R('Zuspieler', 'Setter', 1, 1, { pos: [[6.3, 10.3]], lab: 'Z', ring: 1 }), R('Nachrücker', 'Next in', 0, 4, { act: 'move', g: [3, 19.1, 1, 0, 4], wait: 8, w: 2.5 }), R('Gegenangreifer', 'Counter-hitters', 0, 2, { pos: [[1, 12], [8, 12]], lab: 'A', w: 3 }),
+      R('Abwehr gegenüber', 'Far-side defense', 0, 3, { team: 'b', pos: [[2, 3], [7, 3], [4.5, 1.6]], w: 2 }), R('Blocker', 'Blockers', 0, 2, { pos: [[7.7, 9.7], [1.3, 9.7]], lab: 'B', w: 2 })],
+    st: [['ball', 7.8, 8, 4.6, 15.8], ['pass', 4.8, 15.9, 6.2, 10.7, 6.2, 13.6], ['pass', 6, 10.1, 1.4, 10.3, 3.6, 9.3], ['run', 4.5, 18.7, 4.5, 16.7]] }
+];
+/* ---------------- planner: animated phases for every drill ---------------- */
+I18N.de.p_show = '▶ Ablauf zeigen'; I18N.en.p_show = '▶ Show the flow';
+const runPh = sidestep => (c, S) => {
+  const xs = [1.5, 4.5, 7.5], f = Math.min(3, c[0]), last = c[0] - f, row2 = Math.max(0, Math.min(3, c[0] - 3));
+  const toNet = (from, k) => xs.slice(0, k).map((x, j) => [0, from + j, x, 9.8]);
+  const ph = [{ de: 'Aufstellung in drei Bahnen', en: 'Line-up in three lanes', ar: xs.slice(0, f).map(x => ['run', x, 13.1, x, 10.2]) },
+    { de: 'Erste Reihe: Lauf zum Netz, Blocksprung', en: 'First row: run to the net, block jump', sh: [[0, 3]], mv: toNet(0, f), ar: sidestep ? xs.slice(0, f).map(x => ['run', x + 0.4, 9.8, x + 1.1, 9.8]) : [['run', 8.2, 10, 9.7, 12], ['run', 9.7, 12, 9.7, 17]] }];
+  if (sidestep) ph.push({ de: 'Drei Sidesteps, zweiter Blocksprung', en: 'Three side steps, second block jump', mv: xs.slice(0, f).map((x, j) => [0, j, x + 1.2, 9.8]), ar: [['run', 9, 10, 9.7, 12], ['run', 9.7, 12, 9.7, 17]] });
+  ph.push({ de: 'Außen zurück – nächste Reihe startet', en: 'Back around the outside – next row starts', sh: [[0, 3]], mv: xs.slice(0, f).map((x, j) => { const p = S(0, last + j); return [0, j, p[0], p[1]]; }).concat(toNet(3, row2)) });
+  return ph;
+};
+const PH = {
+  labc: runPh(false), pendel: runPh(true),
+  netzkar: c => { const m0 = Math.ceil(c[0] / 2), m1 = Math.ceil(c[1] / 2); return [
+    { de: 'Pritschen über das Netz', en: 'Set over the net', b: [3, 10.3], ar: [['pass', 3, 10.2, 3, 7.7, 2.2, 9]] },
+    { de: 'Unter dem Netz durch ans Ende der Reihe', en: 'Under the net to the end of the line', b: [3, 7.7], sh: [[0, 2, 2, 0]], mv: [[0, 0, 3, 7.2 - 0.95 * m1]], ar: [['pass', 3, 7.8, 3, 10.3, 3.8, 9]] },
+    { de: 'Zurückspielen und nachlaufen', en: 'Set back and follow', b: [3, 10.3], sh: [[1, 2, 2, 0]], mv: [[0, 0, 3, 7.2 - 0.95 * (m1 - 1)], [1, 0, 3, 10.8 + 0.95 * (m0 - 1)]] }]; },
+  pepper: c => { const m = c[0], p = Math.min(c[0], c[1]), bs = y => Array.from({ length: p }, (_, j) => [0.5 + j, y]); return [
+    { de: 'Zuspiel zum Partner', en: 'Set to your partner', b: bs(11), ar: [['pass', 0.5, 11, 0.5, 7, 1.1, 9]] },
+    { de: 'Bagger zurück', en: 'Pass back', b: bs(7), ar: [['pass', 0.5, 7, 0.5, 11, 1.1, 9]] },
+    { de: 'Lockerer Schlag', en: 'Easy swing', b: bs(11), ar: [['ball', 0.5, 11, 0.5, 7.2]] },
+    { de: 'Wechsel: eine Seite rückt einen Platz weiter', en: 'Switch: one side shifts one spot', b: bs(7), mv: Array.from({ length: m }, (_, j) => [0, j, 0.5 + (j + 1) % m, 11.5]) }]; },
+  servelauf: c => { const x1 = 0.6 + c[1] - 1; return [
+    { de: 'Alle schlagen auf', en: 'Everyone serves', b: [[0.6, 18.4], [x1, -0.4]], ar: [['ball', 0.6, 18.3, 1.6, 1.8], ['ball', x1, -0.3, 7.4, 16.2]] },
+    { de: 'Ball in der Zielzone', en: 'Ball in the target zone', b: [[1.6, 1.5], [7.4, 16.5]], ar: [['run', 9.7, 18, 9.7, 0.5], ['run', -0.7, 0, -0.7, 17.5]] },
+    { de: 'Dem Ball nachsprinten – Seitenwechsel', en: 'Chase your ball – switch sides', b: [[0.6, -0.4], [x1, 18.4]], mv: Array.from({ length: c[0] }, (_, j) => [0, j, 0.6 + j, -0.9]).concat(Array.from({ length: c[1] }, (_, j) => [1, j, 0.6 + j, 18.9])) }]; },
+  butterfly: c => { const ex = 2.5 - 0.9 * c[3]; return [
+    { de: 'Aufschlag longline', en: 'Serve down the line', b: [6.5, 18.4], ar: [['ball', 6.5, 18.3, 6.5, 3.8]] },
+    { de: 'Annahme zum Ziel – Aufschläger läuft nach', en: 'Pass to the target – server follows', b: [6.5, 3.6], sh: [[0, 1]], mv: [[0, 0, 6.5, 3.2 - 0.95 * c[4]]], ar: [['pass', 6.3, 3.5, 3.8, 7.5, 4.4, 4.6]] },
+    { de: 'Zielspieler fängt den Ball', en: 'Target catches the ball', b: [3.5, 7.4], sh: [[4, 1]], mv: [[4, 0, 4.4, 6.6], [0, 0, 6.5, 3.2 - 0.95 * (c[4] - 1)]], ar: [['run', 3.3, 7.6, ex + 0.3, -0.5]] },
+    { de: 'Ball zur Aufschlagreihe – Annahme wird Ziel', en: 'Ball to the serving line – passer becomes target', b: [ex, -0.4], mv: [[5, 0, ex, -0.9], [4, 0, 3.5, 7.9]] }]; },
+  annahme3: (c, S) => [
+    { de: 'Aufschlag', en: 'Serve', b: [1.5, -0.4], ar: [['ball', 1.6, -0.3, 4.5, 15.6]] },
+    { de: 'Annahme zum Zuspieler', en: 'Pass to the setter', b: [4.5, 15.7], ar: [['pass', 4.7, 15.6, 6.2, 10.7, 6.2, 13.6]] },
+    { de: 'Zuspiel nach außen, Anlauf', en: 'Set to the outside, approach', b: [6.1, 9.9], mv: [[2, 0, 1.2, 10.7]], ar: [['pass', 6, 9.9, 1.5, 10.1, 3.6, 9.1]] },
+    { de: 'Angriff', en: 'Attack', b: [1.3, 9.8], ar: [['ball', 1.4, 9.6, 6.6, 3.9]] },
+    { de: 'Nach 5 Bällen: Trio wechselt', en: 'After 5 balls: the trio switches', b: [6.6, 3.8], mv: [[2, 0, 1, 12.3]].concat(c[4] ? [0, 1, 2].filter(j => j < c[4]).flatMap(j => [[0, j].concat(S(4, j)), [4, j].concat(TRIO[j])]) : []) }],
+  angkar: c => { const end = [0.8, 12.3 + 0.95 * (c[1] - 1)]; return [
+    { de: 'Pass zum Zuspieler', en: 'Feed the setter', b: [4.5, 15.1], ar: [['pass', 4.5, 15, 5.5, 10.6]] },
+    { de: 'Zuspiel nach außen, Anlauf', en: 'Set to the outside, approach', b: [5.4, 9.8], mv: [[1, 0, 1.2, 10.6]], ar: [['pass', 5.3, 9.8, 1.5, 10, 3.3, 9]] },
+    { de: 'Angriff gegen Block und Abwehr', en: 'Hit against block and defense', b: [1.3, 9.7], ar: [['ball', 1.4, 9.5, 6.3, 3.7]] },
+    { de: 'Wechsel: Angriff → Block → Abwehr → Reihe', en: 'Rotate: hit → block → defense → line', b: [6.4, 3.6], sh: [[1, 1]], mv: c[4] ? [[1, 0, 1.2, 8.3], [4, 0, 1.5, 3.5], [5, 0].concat(end)] : [[1, 0, 1.5, 3.5], [5, 0].concat(end)] }]; },
+  sideout: c => [
+    { de: 'Aufschlag', en: 'Serve', b: [1.5, -0.4], ar: [['ball', 1.6, -0.3, 4.5, 15.6]] },
+    { de: 'Annahme zum Zuspieler', en: 'Pass to the setter', b: [4.5, 15.7], mv: [[0, 0, 1.2, 12.6]], ar: [['pass', 4.7, 15.6, 6.2, 10.7, 6.2, 13.6]] },
+    { de: 'Zuspiel nach außen', en: 'Set to the outside', b: [6.1, 9.9], mv: [[0, 0, 1.2, 10.7]], ar: [['pass', 6, 9.9, 1.5, 10.1, 3.6, 9.1]] },
+    { de: 'Angriff', en: 'Attack', b: [1.3, 9.8], ar: [['ball', 1.4, 9.6, 6.6, 3.9]] },
+    { de: 'Nächste Welle kommt, alte läuft außen herum', en: 'Next wave steps in, old wave runs around', b: [6.6, 3.8], sh: c[2] >= 3 ? [[2, 3]] : [], mv: c[2] >= 3 ? [0, 1, 2].flatMap(j => [[0, j, 9.9, 9.5 - 2.2 * j], [2, j].concat(TRIO[j])]) : [[0, 0, 1.5, 15]] }],
+  blockkar: c => { const end = [8.2, 6.2 - 0.95 * (c[3] - 1)]; return [
+    { de: 'Pass zum Zuspieler', en: 'Feed the setter', b: [4.5, 3.4], ar: [['pass', 4.6, 3.5, 5.4, 7.6]] },
+    { de: 'Zuspiel nach außen – Block liest', en: 'Set to the pin – the block reads', b: [5.6, 8.2], mv: [[3, 0, 8, 7.6]], ar: [['pass', 5.8, 8.1, 7.8, 8, 6.9, 9], ['run', 4.5, 10.2, 6.5, 10.2]] },
+    { de: 'Block schließt, Abwehr neben den Blockschatten', en: 'Block closes, defense beside the block shadow', b: [7.9, 8.5], mv: [[0, 1, 6.7, 9.7], [0, 0, 1.5, 12.2], [1, 2, 8.4, 15], [1, 1, 5, 16.8], [1, 0, 1.6, 15]], ar: [['ball', 7.9, 8.7, 7.4, 9.5]] },
+    { de: 'Wechsel: Angriff → Block → Abwehr → Reihe', en: 'Rotate: hit → block → defense → line', b: [4.5, 3.4], sh: [[3, 1]], mv: [[3, 0, 7.5, 9.7], [0, 2, 7.8, 14.5], [0, 1, 4.5, 9.7], [0, 0, 1.5, 9.7], [1, 1, 4.5, 16], [1, 0, 1.2, 14.5]].concat(c[1] > 2 ? [[1, 2].concat(end)] : []) }]; },
+  kasten: () => [
+    { de: 'Zuspiel nach außen', en: 'Set to the outside', b: [4.8, 9.9], mv: [[0, 0, 0.9, 12.2]], ar: [['pass', 4.7, 9.9, 1.9, 10, 3.4, 9.2]] },
+    { de: 'Angriff – Sicherung rückt eng auf', en: 'Hit – the cover closes in', b: [1.5, 9.8], mv: [[0, 0, 1.5, 10.5], [2, 0, 2.7, 11.3], [2, 1, 0.6, 11.4], [2, 2, 1.9, 12.7]], ar: [['ball', 1.5, 9.7, 1.5, 9.1]] },
+    { de: 'Kasten-Blocker drückt zurück – Abpraller retten', en: 'Box blocker presses back – dig the deflection', b: [2.5, 11], ar: [['ball', 1.6, 9.1, 2.5, 10.9, 1.4, 10.4]] },
+    { de: 'Zum Zuspieler – neu anlaufen', en: 'To the setter – approach again', b: [4.8, 10.3], mv: [[0, 0, 0.9, 12.2], [2, 0, 2.9, 11.5], [2, 1, 1.4, 12.1], [2, 2, 3.2, 13.4]], ar: [['pass', 2.7, 11.2, 4.7, 10.4, 3.8, 9.9]] }],
+  abwehrkar: c => { const h = c[5] ? 5 : 2, back = c[5] ? [1, 12] : [1.2, 14.5]; return [
+    { de: 'Angriff auf das Abwehr-Trio', en: 'Hit at the defensive trio', b: [7.9, 8], ar: [['ball', 7.8, 8.2, 4.7, 15.6]] },
+    { de: 'Abwehr zum Zuspieler', en: 'Dig to the setter', b: [4.5, 15.7], ar: [['pass', 4.7, 15.6, 6.2, 10.8, 6.2, 13.6]] },
+    { de: 'Zuspiel zum Gegenangriff', en: 'Set for the counter-attack', b: [6.1, 10], mv: [[h, 0, 1.2, 10.8]], ar: [['pass', 6, 10, 1.5, 10.2, 3.6, 9.2]] },
+    { de: 'Gegenangriff', en: 'Counter-attack', b: [1.3, 9.9], ar: [['ball', 1.4, 9.7, 6.4, 3.6]] },
+    { de: 'Wechsel: Nachrücker in die Abwehr', en: 'Switch: next player steps into defense', b: [6.5, 3.5], sh: [[4, 1]], mv: [[h, 0].concat(back)].concat(c[4] ? [[2, 1, 3 + c[4] - 1, 19.1], [4, 0, 4.5, 16.2]] : []) }]; },
+  game: (c, S, n) => {
+    const k = c[0];
+    if (n >= 15) { const sv = c[2] - 1; return [
+      { de: 'Ballwechsel', en: 'Rally', b: [4.5, 6.5], ar: [['ball', 4.6, 6.8, 6, 13.2]] },
+      { de: 'Team A verliert den Ballwechsel', en: 'Team A loses the rally', b: [6, 13.5] },
+      { de: 'Welle: A raus, C schlägt sofort auf', en: 'Wave: A out, C serves at once', b: [7.5, 18.4], mv: Array.from({ length: k }, (_, j) => [0, j, -0.8, 10.4 + 1.5 * j]).concat(Array.from({ length: c[2] }, (_, j) => j === sv ? [2, j, 7.5, 18.9] : [2, j].concat(SIX[j]))), ar: [['ball', 7.5, 18.3, 3.2, 3.6]] },
+      { de: 'Aufschlag im Spiel – A stellt sich hinten an', en: 'Serve in play – A lines up behind the baseline', b: [3, 3.3], mv: [[2, sv].concat(SIX[sv])].concat(Array.from({ length: k }, (_, j) => [0, j].concat(S(2, j)))) }]; }
+    const joker = n >= 13 && c[2] > 0, rot6 = { 0: 1, 1: 2, 2: 5, 5: 4, 4: 3, 3: 0 }, to = j => k === 6 ? rot6[j] : (j + 1) % k, last = k === 6 ? 5 : k - 1;
+    const srv = Array.from({ length: k }, (_, j) => j).find(j => to(j) === last);
+    const rot = Array.from({ length: k }, (_, j) => j === srv ? [0, j].concat(joker ? [9.9, 17.5] : [7.5, 18.9]) : [0, j].concat(SIX[to(j)]));
+    return [
+      { de: 'Ballwechsel', en: 'Rally', b: [4.5, 11.5], ar: [['ball', 4.5, 11.2, 3, 5.2]] },
+      { de: 'Punkt für Team A', en: 'Point for team A', b: [3, 4.8] },
+      { de: joker ? 'Rotation: Joker kommt zum Aufschlag, Position 1 geht raus' : 'Rotation und Aufschlag', en: joker ? 'Rotation: joker comes in to serve, position 1 steps out' : 'Rotation and serve', b: [7.5, 18.4], mv: rot.concat(joker ? [[2, 0, 7.5, 18.9]] : []), ar: [['ball', 7.5, 18.3, 5.5, 3.6]] },
+      { de: 'Aufschlag im Spiel', en: 'Serve in play', b: [5.5, 3.4], mv: [joker ? [2, 0].concat(SIX[last]) : [0, srv].concat(SIX[last])] }];
+  }
+};
+DRILLS.forEach(d => { d.ph = PH[d.id]; });
+
+function buildSteps(dr, al, n) {
+  const st = typeof dr.st === 'function' ? dr.st(n) : (dr.st || []), base = [];
+  st.forEach((s, i) => { if (s[0] === 'box') base.push({ id: 's' + i, t: 'box', x: s[1], y: s[2] }); else if (s[0] === 'zone') base.push({ id: 's' + i, t: 'zone', x: s[1], y: s[2], w: s[3], h: s[4], label: s[5] || '' }); });
+  const cnt = dr.roles.map(r => { const a = al.roles.find(x => x.r === r); return a ? a.c : 0; }), S = (ri, j) => slot(dr.roles[ri], j);
+  const pos = cnt.map((c, ri) => Array.from({ length: c }, (_, j) => S(ri, j))), idx = cnt.map(c => Array.from({ length: c }, (_, j) => j));
+  const phases = dr.ph ? dr.ph(cnt, S, n) : null; if (!phases) return [{ name: t('step') + ' 1', els: sceneEls(dr, al, n) }];
+  let balls = [];
+  return phases.map((p, pi) => {
+    (p.sh || []).forEach(([ri, k, mod, res]) => { for (let j = 0; j < cnt[ri]; j++) { if (mod && j % mod !== res) continue; if (idx[ri][j] >= k) { idx[ri][j] -= k; pos[ri][j] = S(ri, idx[ri][j]); } else idx[ri][j] = -1; } });
+    (p.mv || []).forEach(([ri, j, x, y]) => { if (j < cnt[ri]) pos[ri][j] = [x, y]; });
+    if (p.b) balls = typeof p.b[0] === 'number' ? [p.b] : p.b;
+    const els = base.map(e => Object.assign({}, e));
+    (p.ar || []).forEach((a, ai) => els.push(Object.assign({ id: 'a' + pi + '_' + ai, t: 'arrow', k: a[0], x: a[1], y: a[2], x2: a[3], y2: a[4], label: '' }, a.length > 6 ? { c: { x: a[5], y: a[6] } } : {})));
+    dr.roles.forEach((r, ri) => { for (let j = 0; j < cnt[ri]; j++) els.push({ id: 'p' + ri + '_' + j, t: 'player', team: r.team || 'a', x: f1(pos[ri][j][0]), y: f1(pos[ri][j][1]), label: r.lab || '', ring: !!r.ring }); });
+    for (let j = 0; j < al.side; j++) els.push({ id: 'n' + j, t: 'player', team: 'a', x: 9.9, y: 11 + j * 0.95, label: 'N' });
+    balls.forEach((b, bi) => els.push({ id: 'ball' + bi, t: 'ball', x: f1(b[0]), y: f1(b[1]) }));
+    return { name: L(p), els };
+  });
+}
+function tweenEls(A, B, s) { const m = new Map(B.map(e => [e.id, e])); return A.map(e => { const b = m.get(e.id); if (!b) return e; const o = Object.assign({}, e); for (const k of ['x', 'y', 'x2', 'y2']) if (typeof e[k] === 'number' && typeof b[k] === 'number') o[k] = e[k] + (b[k] - e[k]) * s; return o; }); }
+let miniRaf = null, miniT = null;
+function miniStop() { cancelAnimationFrame(miniRaf); clearTimeout(miniT); }
+function miniPlay(i) {
+  miniStop(); renderPlan();
+  const b = PLAN[i], card = $$('#plOut .blk')[i]; if (!b || !card) return;
+  const steps = buildSteps(b.dr, b.al, PL.n), el = $('.mini svg', card), cap = $('.cap', card), draw = els => { el.innerHTML = sceneBody(els, MINI_D, false, null); };
+  let k = 0;
+  const next = () => {
+    draw(steps[k].els); cap.textContent = (k + 1) + '/' + steps.length + ' · ' + steps[k].name;
+    if (k >= steps.length - 1) { miniT = setTimeout(renderPlan, 2200); return; }
+    miniT = setTimeout(() => { const A = steps[k].els, B = steps[k + 1].els, t0 = performance.now();
+      const tick = now => { const u = Math.min(1, (now - t0) / 950), s = u < .5 ? 2 * u * u : -1 + (4 - 2 * u) * u; draw(tweenEls(A, B, s)); if (u < 1) miniRaf = requestAnimationFrame(tick); else { k++; next(); } };
+      miniRaf = requestAnimationFrame(tick); }, 900);
+  };
+  next();
+}
+/* ---------------- planner: logic ---------------- */
+const PL = Object.assign({ n: 16, tech: 90, game: 30, focus: ['Block', 'Abwehr'], run: true, box: true, seed: 7 }, LS.get('vds.plan.v1', {}));
+PL.n = Math.max(8, Math.min(18, +PL.n || 16)); if (!Array.isArray(PL.focus)) PL.focus = ['Block', 'Abwehr'];
+let PLAN = [];
+const FOCI = ['Aufschlag', 'Annahme', 'Angriff', 'Block', 'Abwehr'];
+const MINI_D = { orient: 'v', half: false, zones: false };
+const catName = c => LANG === 'en' ? (CATN[c] || c) : (c === 'warm' ? t('warm') : c);
+function rng(seed) { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; let x = Math.imul(a ^ a >>> 15, 1 | a); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; }; }
+
+function alloc(dr, n) {
+  const small = dr.big && n < dr.big;
+  const roles = dr.roles.map(r => ({ r, c: r.min || 0, max: small && r.maxS != null ? r.maxS : r.max }));
+  roles.forEach(x => { if (x.c > x.max) x.c = x.max; });
+  let left = n - roles.reduce((s, x) => s + x.c, 0); if (left < 0) return null;
+  while (left > 0) {
+    let best = null, bs = -1;
+    for (const x of roles) { if (x.c >= x.max) continue; const sc = (x.r.w || 1) / (x.c + 1); if (sc > bs) { bs = sc; best = x; } }
+    if (!best) break; best.c++; left--;
+  }
+  return { roles: roles.filter(x => x.c > 0), side: left };
+}
+function stats(al) {
+  let ball = 0, move = 0, wait = 0;
+  for (const { r, c } of al.roles) {
+    if (r.act === 'move') move += c; else ball += c;
+    if (r.wait) { const ln = r.lanes || 1; wait = Math.max(wait, Math.max(0, c - ln) * r.wait / ln); }
+    if (r.hold) wait = Math.max(wait, r.hold);
+  }
+  return { ball, move, side: al.side, wait: Math.round(wait) };
+}
+function slot(r, i) { if (r.pos) { const p = r.pos[i % r.pos.length]; return [p[0], p[1]]; } const [x, y, dx, dy, cols] = r.g; return [x + (i % cols) * dx, y + Math.floor(i / cols) * dy]; }
+function sceneEls(dr, al, n) {
+  const els = []; let k = 0; const id = () => 'g' + (k++);
+  const st = typeof dr.st === 'function' ? dr.st(n) : (dr.st || []);
+  for (const s of st) {
+    if (s[0] === 'box') els.push({ id: id(), t: 'box', x: s[1], y: s[2] });
+    else if (s[0] === 'zone') els.push({ id: id(), t: 'zone', x: s[1], y: s[2], w: s[3], h: s[4], label: s[5] || '' });
+    else els.push(Object.assign({ id: id(), t: 'arrow', k: s[0], x: s[1], y: s[2], x2: s[3], y2: s[4], label: '' }, s.length > 6 ? { c: { x: s[5], y: s[6] } } : {}));
+  }
+  for (const { r, c } of al.roles) for (let j = 0; j < c; j++) { const [x, y] = slot(r, j); els.push({ id: id(), t: 'player', team: r.team || 'a', x, y, label: r.lab || '', ring: !!r.ring }); }
+  for (let j = 0; j < al.side; j++) els.push({ id: id(), t: 'player', team: 'a', x: 9.9, y: 11 + j * 0.95, label: 'N' });
+  return els;
+}
+
+/* game formats by head count */
+function gameDrill(n, focus) {
+  const B6 = SIX.map(([x, y]) => [9 - x, 18 - y]);
+  const rule = {
+    Block: { de: '+1 für jeden geschlossenen Block, +2 für Sicherung → Gegenangriff → Punkt.', en: '+1 for every closed block, +2 for cover → counter-attack → point.' },
+    Abwehr: { de: 'Punkt nach abgewehrtem Angriff zählt doppelt.', en: 'A point won after a dig counts double.' },
+    Aufschlag: { de: 'Ass oder Aufschlag in die angesagte Zone zählt doppelt, Fehlaufschlag −1.', en: 'An ace or a serve to the called zone counts double, a missed serve −1.' },
+    Annahme: { de: 'Sideout nach perfekter Annahme zählt doppelt.', en: 'A side-out after a perfect pass counts double.' },
+    Angriff: { de: 'Angriffspunkt in die angesagte Zone zählt doppelt.', en: 'An attack point to the called zone counts double.' } }[focus] || { de: 'Normale Zählweise.', en: 'Normal scoring.' };
+  let roles, org, rot, name;
+  if (n >= 15) {
+    const a = Math.ceil(n / 3), b = Math.ceil((n - a) / 2), c = n - a - b;
+    name = { de: `Wellenspiel mit 3 Teams (${a}·${b}·${c})`, en: `Wave game with 3 teams (${a}·${b}·${c})` };
+    roles = [R('Team A', 'Team A', a, a, { pos: SIX }), R('Team B', 'Team B', b, b, { team: 'b', pos: B6 }), R('Team C: schlägt auf und kommt rein', 'Team C: serves and steps in', c, c, { g: [1.5, 19.1, 1.2, 0, 6], lab: 'C', hold: 20 })];
+    org = { de: 'Zwei Teams spielen, das dritte steht mit Ball hinter der Grundlinie. Ballwechsel vorbei: Verlierer raus, Team C schlägt sofort auf und spielt. Fünferteams spielen ohne festen Zuspieler-Wechsel.', en: 'Two teams play, the third waits with a ball behind the baseline. Rally over: losers out, team C serves at once and plays. Teams of five play without setter substitutions.' };
+    rot = { de: 'Wechsel nach jedem Ballwechsel. Das wartende Team macht 3 Blocksprünge und ist nach rund 20 Sekunden wieder drin.', en: 'Switch after every rally. The waiting team does 3 block jumps and is back in after about 20 seconds.' };
+  } else if (n >= 12) {
+    const j = n - 12; name = j ? { de: `6 gegen 6 mit ${j} Aufschlag-Joker`, en: `6 v 6 with ${j} serving joker${j > 1 ? 's' : ''}` } : { de: '6 gegen 6', en: '6 v 6' };
+    roles = [R('Team A', 'Team A', 6, 6, { pos: SIX }), R('Team B', 'Team B', 6, 6, { team: 'b', pos: B6 })].concat(j ? [R('Aufschlag-Joker', 'Serving jokers', j, j, { pos: [[9.9, 17.5], [-0.9, 0.5]], lab: 'J', hold: 30 })] : []);
+    org = { de: j ? 'Der Joker schlägt für sein Team auf und bleibt im Feld; dafür geht der Spieler von Position 1 raus und wird neuer Joker.' : 'Normale Aufstellung, schnelle Aufschläge – der Ball ist sofort wieder im Spiel.', en: j ? 'The joker serves for the team and stays on court; the player from position 1 steps out and becomes the next joker.' : 'Normal line-up, quick serves – the ball is back in play at once.' };
+    rot = { de: j ? 'Wechsel bei jeder Rotation, Pause höchstens eine Rotation (rund 30 Sekunden).' : 'Normale Rotation.', en: j ? 'Switch at every rotation; the pause is at most one rotation (about 30 seconds).' : 'Normal rotation.' };
+  } else {
+    const k = Math.floor(n / 2), neutral = n - 2 * k;
+    name = { de: `${k} gegen ${k}` + (neutral ? ' mit neutralem Zuspieler' : ''), en: `${k} v ${k}` + (neutral ? ' with a neutral setter' : '') };
+    roles = [R('Team A', 'Team A', k, k, { pos: SIX }), R('Team B', 'Team B', k, k, { team: 'b', pos: B6 })].concat(neutral ? [R('Neutraler Zuspieler', 'Neutral setter', 1, 1, { pos: [[9.6, 9]], lab: 'Z', ring: 1 })] : []);
+    org = { de: 'Kleines Spiel auf ganzem Feld' + (neutral ? '; der neutrale Zuspieler läuft unter dem Netz durch und stellt für beide Seiten.' : '.'), en: 'Small-sided game on the full court' + (neutral ? '; the neutral setter runs under the net and sets for both sides.' : '.') };
+    rot = { de: 'Alle spielen durch, Positionen rotieren bei jedem Aufschlagwechsel.', en: 'Everyone plays throughout; rotate positions at every side-out.' };
+  }
+  const al = { roles: roles.map(r => ({ r, c: r.min, max: r.max })), side: 0 };
+  return { dr: { id: 'game', cats: ['Spiel'], name, org, rot, cue: rule, roles, st: [], ph: PH.game }, al };
+}
+
+function buildPlan() {
+  const rnd = rng(PL.seed), used = new Set(), blocks = [], n = PL.n;
+  const pick = cat => {
+    let c = DRILLS.filter(d => d.cats.includes(cat) && n >= d.min && (!d.box || PL.box));
+    const fresh = c.filter(d => !used.has(d.id)); if (fresh.length) c = fresh; if (!c.length) return null;
+    let best = null, bs = -1e9;
+    for (const d of c) { const al = alloc(d, n); if (!al) continue; const s = stats(al), sc = -s.side * 5 - s.wait / 8 + (PL.run && d.run ? 2.5 : 0) + rnd() * 3; if (sc > bs) { bs = sc; best = d; } }
+    if (best) used.add(best.id); return best;
+  };
+  const add = (dr, min, cat) => { if (!dr || min <= 0) return; const al = alloc(dr, n); blocks.push({ dr, al, min, cat, st: stats(al) }); };
+  const w1 = PL.tech >= 75 ? 7 : 5, w2 = PL.tech >= 75 ? 8 : 7;
+  add(pick('warmrun'), w1, 'warm'); add(pick('warmball'), w2, 'warm');
+  const rest = PL.tech - w1 - w2, F = PL.focus.length ? PL.focus : ['Aufschlag', 'Annahme', 'Angriff'], units = Math.floor(rest / 5), extra = rest - units * 5;
+  F.forEach((c, i) => {
+    const m = (Math.floor(units / F.length) + (i < units % F.length ? 1 : 0)) * 5 + (i === 0 ? extra : 0), d1 = pick(c); if (!d1) return;
+    const d2 = m >= 25 ? pick(c) : null;
+    if (d2 && d2 !== d1) { const pair = [d1, d2].sort((x, y) => x.lvl - y.lvl), a = Math.round(m * 0.45 / 5) * 5; add(pair[0], a, c); add(pair[1], m - a, c); } else add(d1, m, c);
+  });
+  if (PL.game > 0) { const g = gameDrill(n, F[0]); blocks.push({ dr: g.dr, al: g.al, min: PL.game, cat: 'Spiel', st: stats(g.al) }); }
+  let s = 0; blocks.forEach(b => { b.start = s; s += b.min; });
+  PLAN = blocks; LS.set('vds.plan.v1', PL); renderPlan();
+}
+function swapBlock(i) {
+  const b = PLAN[i]; if (!b || b.cat === 'Spiel') return;
+  const cat = b.cat === 'warm' ? b.dr.cats[0] : b.cat, inPlan = new Set(PLAN.map(x => x.dr.id));
+  let c = DRILLS.filter(d => d.cats.includes(cat) && d !== b.dr && PL.n >= d.min && (!d.box || PL.box) && alloc(d, PL.n));
+  const fresh = c.filter(d => !inPlan.has(d.id)); if (fresh.length) c = fresh; if (!c.length) return toast(t('p_none'));
+  const d = c[Math.floor(Math.random() * c.length)], al = alloc(d, PL.n); PLAN[i] = Object.assign({}, b, { dr: d, al, st: stats(al) }); renderPlan();
+}
+
+const miniSVG = b => `<svg viewBox="0 0 350 640" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">${sceneBody(sceneEls(b.dr, b.al, PL.n), MINI_D, false, null)}</svg>`;
+const rolesOf = b => b.al.roles.map(({ r, c }) => [c, L(r)]).concat(b.al.side ? [[b.al.side, t('p_side')]] : []);
+const actLine = b => `${t('p_ball')} ${b.st.ball} · ${t('p_move')} ${b.st.move} · ${t('p_side')} ${b.st.side} · ${t('p_noidle')} 0 · ${t('p_wait')} ~${b.st.wait} s`;
+function renderPlan() {
+  const out = $('#plOut'); if (!PLAN.length) { out.innerHTML = `<p class="empty">${t('p_none')}</p>`; return; }
+  const total = PLAN.reduce((s, b) => s + b.min, 0), maxWait = Math.max(...PLAN.map(b => b.st.wait)), side = Math.max(...PLAN.map(b => b.st.side));
+  let h = `<div class="pstats"><div class="stat"><b>${PL.n}</b>${t('p_players_s')}</div><div class="stat"><b>${total} min</b>${PLAN.length} ${LANG === 'en' ? 'blocks' : 'Blöcke'}</div><div class="stat"><b>0</b>${t('p_noidle')}</div><div class="stat"><b>~${maxWait} s</b>${t('p_maxwait')}</div><div class="stat"><b>${side}</b>${t('p_side')} (max.)</div></div>`;
+  h += PLAN.map((b, i) => {
+    const n = PL.n, pc = v => (100 * v / n).toFixed(1);
+    return `<article class="blk"><div class="mini">${miniSVG(b)}<div class="cap kbd"></div><button class="btn sm primary" data-play="${i}" style="margin-top:6px;width:100%;justify-content:center">${t('p_show')}</button></div><div class="bi">
+      <div class="row"><span class="time">${b.start}′–${b.start + b.min}′ · ${b.min} min</span><span class="chip">${esc(catName(b.cat))}</span>${b.dr.run ? `<span class="chip ex">${t('p_runchip')}</span>` : ''}</div>
+      <h3>${esc(L(b.dr.name))}</h3>
+      <div class="roles">${rolesOf(b).map(([c, l]) => `<span class="rc"><b>${c}</b>${esc(l)}</span>`).join('')}</div>
+      <div class="bar"><i class="b1" style="width:${pc(b.st.ball)}%"></i><i class="b2" style="width:${pc(b.st.move)}%"></i><i class="b3" style="width:${pc(b.st.side)}%"></i></div>
+      <div class="kbd">${actLine(b)}</div>
+      <p><b>${t('p_flow')}:</b> ${esc(L(b.dr.org))}</p><p><b>${t('p_rot')}:</b> ${esc(L(b.dr.rot))}</p><p><b>${t('p_cue')}:</b> ${esc(L(b.dr.cue))}</p>
+      ${b.st.side ? `<p class="kbd">${t('p_sidehint')}</p>` : ''}
+      <div class="row"><button class="btn sm" data-open="${i}">${t('p_open')}</button>${b.cat !== 'Spiel' ? `<button class="btn sm" data-swap="${i}">${t('p_swap')}</button>` : ''}</div>
+    </div></article>`;
+  }).join('');
+  out.innerHTML = h;
+}
+function blockToDrill(b) {
+  const d = newDrill(L(b.dr.name)); d.category = CATS.includes(b.cat) ? b.cat : (b.cat === 'warm' ? 'Aufwärmen' : 'Spiel'); d.duration = b.min + ' min'; d.players = String(PL.n); d.zones = false;
+  d.notes = { org: L(b.dr.org) + '\n' + rolesOf(b).map(([c, l]) => c + '× ' + l).join(' · '), coach: L(b.dr.cue), prog: L(b.dr.rot) };
+  d.steps = buildSteps(b.dr, b.al, PL.n); return d;
+}
+function planText() {
+  const total = PLAN.reduce((s, b) => s + b.min, 0);
+  return `${t('p_plan')} · ${PL.n} ${t('p_players_s')} · ${total} min\n\n` + PLAN.map(b => `${b.start}′–${b.start + b.min}′  ${L(b.dr.name)} [${catName(b.cat)}]\n  ${rolesOf(b).map(([c, l]) => c + '× ' + l).join(' · ')}\n  ${actLine(b)}\n  ${t('p_flow')}: ${L(b.dr.org)}\n  ${t('p_rot')}: ${L(b.dr.rot)}\n  ${t('p_cue')}: ${L(b.dr.cue)}`).join('\n\n');
+}
+function planHTML() {
+  const total = PLAN.reduce((s, b) => s + b.min, 0);
+  return `<!doctype html><html lang="${LANG}"><head><meta charset="utf-8"><title>${t('p_plan')} ${PL.n}</title><style>body{font:13px/1.45 Helvetica,Arial,sans-serif;color:#1E2A33;max-width:900px;margin:24px auto;padding:0 16px}h1{font-size:20px;margin:0 0 12px}.b{display:grid;grid-template-columns:140px 1fr;gap:14px;border:1px solid #D8E1EA;border-radius:10px;padding:10px;margin:0 0 10px;break-inside:avoid}svg{width:100%;height:auto}.t{color:#5B6B78;font-weight:700;font-size:12px}h2{margin:2px 0 6px;font-size:15px}p{margin:0 0 5px}.r span{display:inline-block;border:1px solid #D8E1EA;border-radius:99px;padding:1px 8px;margin:0 4px 4px 0;font-size:12px}.a{color:#5B6B78;font-size:12px}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${t('p_plan')} · ${PL.n} ${t('p_players_s')} · ${total} min</h1>` +
+    PLAN.map(b => `<div class="b"><div>${miniSVG(b)}</div><div><div class="t">${b.start}′–${b.start + b.min}′ · ${b.min} min · ${esc(catName(b.cat))}</div><h2>${esc(L(b.dr.name))}</h2><div class="r">${rolesOf(b).map(([c, l]) => `<span><b>${c}</b> ${esc(l)}</span>`).join('')}</div><p class="a">${actLine(b)}</p><p><b>${t('p_flow')}:</b> ${esc(L(b.dr.org))}</p><p><b>${t('p_rot')}:</b> ${esc(L(b.dr.rot))}</p><p><b>${t('p_cue')}:</b> ${esc(L(b.dr.cue))}</p></div></div>`).join('') + '</body></html>';
+}
+
+/* ---------------- planner: wiring ---------------- */
+function syncForm() {
+  $('#plN').value = PL.n; $('#plNr').value = PL.n; $('#plTech').value = PL.tech; $('#plGame').value = PL.game; $('#plRun').checked = !!PL.run; $('#plBox').checked = !!PL.box;
+  $('#plFocus').innerHTML = FOCI.map(f => `<button data-v="${f}" class="${PL.focus.includes(f) ? 'on' : ''}">${esc(catName(f))}</button>`).join('');
+}
+function setN(v) { PL.n = Math.max(8, Math.min(18, Math.round(+v) || 16)); $('#plN').value = PL.n; $('#plNr').value = PL.n; buildPlan(); }
+$('#plN').addEventListener('change', e => setN(e.target.value)); $('#plNr').addEventListener('input', e => setN(e.target.value));
+$('#plTech').addEventListener('change', e => { PL.tech = +e.target.value; buildPlan(); }); $('#plGame').addEventListener('change', e => { PL.game = +e.target.value; buildPlan(); });
+$('#plRun').addEventListener('change', e => { PL.run = e.target.checked; buildPlan(); }); $('#plBox').addEventListener('change', e => { PL.box = e.target.checked; buildPlan(); });
+$('#plFocus').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = b.dataset.v, i = PL.focus.indexOf(v); if (i >= 0) PL.focus.splice(i, 1); else { if (PL.focus.length >= 3) PL.focus.shift(); PL.focus.push(v); } syncForm(); buildPlan(); });
+$('#plGo').addEventListener('click', buildPlan); $('#plDice').addEventListener('click', () => { PL.seed = (PL.seed * 31 + 17) % 100003; buildPlan(); });
+$('#plCopy').addEventListener('click', () => copyText(planText()));
+$('#plHtml').addEventListener('click', async () => { if (await saveFile(`trainingsplan-${PL.n}-spieler.html`, planHTML()) === 'none') toast(t('p_nodl')); });
+$('#plToLib').addEventListener('click', () => { PLAN.forEach(b => state.lib.unshift(normalize(blockToDrill(b)))); persistLib(); toast(PLAN.length + ' ' + t('p_added')); });
+$('#plOut').addEventListener('click', e => {
+  const o = e.target.closest('[data-open]'), s = e.target.closest('[data-swap]');
+  const pl = e.target.closest('[data-play]'); if (pl) return miniPlay(+pl.dataset.play);
+  miniStop();
+  if (s) return swapBlock(+s.dataset.swap);
+  if (o) { const d = blockToDrill(PLAN[+o.dataset.open]), go = () => { openDrill(d); state.dirty = true; $('#dirty').hidden = false; setView('studio'); if (d.steps.length > 1) startPlay(); }; state.dirty ? confirmBar(t('confirm_new'), go) : go(); }
+});
+let VIEW = 'studio';
+function setView(v) {
+  VIEW = v === 'plan' ? 'plan' : 'studio'; if (VIEW === 'plan' && state.playing) stopPlay();
+  $('#app').classList.toggle('plan', VIEW === 'plan'); $('#planner').hidden = VIEW !== 'plan'; $('#bPlan').textContent = VIEW === 'plan' ? t('studio') : t('planner');
+  if (VIEW === 'plan') { syncForm(); if (!PLAN.length) buildPlan(); else renderPlan(); }
+  const want = VIEW === 'plan' ? '#planer' : '#studio'; try { if (location.hash !== want && (VIEW === 'plan' || location.hash)) location.hash = want; } catch (e) { }
+}
+$('#bPlan').addEventListener('click', () => setView(VIEW === 'plan' ? 'studio' : 'plan'));
+$('#bLang').addEventListener('click', () => { $('#bPlan').textContent = VIEW === 'plan' ? t('studio') : t('planner'); if (VIEW === 'plan') { syncForm(); renderPlan(); } });
+window.addEventListener('hashchange', () => { const p = location.hash === '#planer'; if (p !== (VIEW === 'plan')) setView(p ? 'plan' : 'studio'); });
+['title', 'dirty', 'bUndo', 'bRedo', 'bSave', 'bExport', 'bNew'].forEach(id => $('#' + id).classList.add('studio-only'));
+applyI18n(); setView(location.hash === '#planer' ? 'plan' : 'studio');
+</script>
+<script>
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>
